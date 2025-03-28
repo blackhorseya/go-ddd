@@ -497,5 +497,4 @@ $RECYCLE.BIN/
 # golang output binary directory
 bin
 
-deployments
 result.json
