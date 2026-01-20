@@ -1,0 +1,35 @@
+app:
+  name: go-ddd-service
+  env: development # development, staging, production
+
+server:
+  http:
+    host: 0.0.0.0
+    port: 8080
+    read_timeout: 30s
+    write_timeout: 30s
+  grpc:
+    host: 0.0.0.0
+    port: 9090
+
+database:
+  driver: postgres
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ""
+  name: app
+  ssl_mode: disable
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+log:
+  level: info # debug, info, warn, error
+  format: json # json, text
