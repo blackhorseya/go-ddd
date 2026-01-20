@@ -32,6 +32,6 @@ redis:
 
 log:
   level: debug # debug, info, warn, error
-  format: json # json, text
+  format: text # json, text
   output: stdout # stdout, stderr
-  add_source: false # add source file:line to log
+  add_source: true # add source file:line to log

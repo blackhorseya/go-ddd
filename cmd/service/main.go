@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	httpserver "github.com/blackhorseya/go-ddd/internal/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/blackhorseya/go-ddd/pkg/logx"
@@ -43,12 +45,29 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	// TODO: Initialize your application components here
-	// - Setup dependency injection
-	// - Initialize infrastructure (database, redis, etc.)
-	// - Start HTTP/gRPC servers
+	// Create cancellable context for graceful shutdown
+	runCtx, cancel := context.WithCancel(ctx)
 
-	// Wait for termination signal
-	<-signals
-	ctx.Info("service shutting down")
+	// Initialize HTTP server
+	server := httpserver.NewServer(cfg.Server.HTTP, logger)
+
+	// Start HTTP server in goroutine
+	errCh := make(chan error, 1)
+	go func() {
+		if err := server.Run(runCtx); err != nil {
+			errCh <- err
+		}
+	}()
+
+	// Wait for termination signal or server error
+	select {
+	case sig := <-signals:
+		ctx.Info("received signal", "signal", sig.String())
+	case err := <-errCh:
+		ctx.Error("server error", "error", err)
+	}
+
+	// Trigger graceful shutdown
+	cancel()
+	ctx.Info("service shutdown complete")
 }
