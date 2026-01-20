@@ -1,74 +1,262 @@
 # Go DDD Template Project
 
-This is a template project implementing Clean Architecture and Domain-Driven Design (DDD) principles in Go. Use this template as a starting point for your domain-driven microservices.
+Go 語言實作 Clean Architecture 與 Domain-Driven Design (DDD) 的專案範本。
 
-## Project Structure
+## 快速開始
 
+```bash
+# 1. 使用此範本建立新專案
+# 點擊 GitHub 上的 "Use this template"
+
+# 2. Clone 新專案
+git clone https://github.com/your-org/your-project.git
+cd your-project
+
+# 3. 更新模組名稱
+go mod edit -module github.com/your-org/your-project
+
+# 4. 安裝依賴
+go mod tidy
+
+# 5. 執行服務
+go run cmd/service/main.go
 ```
+
+## 專案結構
+
+```text
 .
-├── cmd/            # Application entrypoints
-├── configs/        # Configuration files and structures
-├── internal/       # Private application code
-│   ├── domain/     # Domain layer: entities, value objects, domain services
-│   ├── usecase/    # Use case layer: commands, queries, behaviors
-│   ├── delivery/   # Interface adapters (HTTP/gRPC)
-│   ├── infra/      # Infrastructure implementations
-│   └── shared/     # Shared utilities
-├── pkg/            # Public libraries
-└── tests/          # Test suites
+├── cmd/                        # 應用程式進入點
+│   └── service/
+├── internal/                   # 私有應用程式碼
+│   ├── domain/                 # 領域層（按聚合組織）
+│   │   ├── order/              # Order 聚合
+│   │   │   ├── order.go        # 聚合根
+│   │   │   ├── item.go         # 聚合內實體
+│   │   │   ├── repository.go   # Repository 介面
+│   │   │   └── service.go      # 領域服務
+│   │   ├── user/               # User 聚合
+│   │   │   ├── user.go
+│   │   │   └── repository.go
+│   │   ├── valueobject/        # 共用值物件
+│   │   │   ├── money.go
+│   │   │   └── address.go
+│   │   └── event/              # 共用領域事件
+│   ├── application/            # 應用層
+│   │   ├── usecase/            # 用例實作
+│   │   ├── port/               # 外部服務介面
+│   │   ├── dto/                # 資料傳輸物件
+│   │   └── mapper/             # DTO ↔ Domain 映射
+│   ├── adapter/                # 適配器層
+│   │   ├── http/
+│   │   │   ├── handler/
+│   │   │   ├── middleware/
+│   │   │   └── router/
+│   │   ├── grpc/
+│   │   └── consumer/
+│   └── infrastructure/         # 基礎設施層
+│       ├── config/
+│       ├── persistence/
+│       │   ├── postgres/
+│       │   └── redis/
+│       ├── messaging/
+│       ├── external/           # 外部服務客戶端
+│       └── logger/
+├── pkg/                        # 公共可重用套件
+├── configs/                    # 配置檔案
+├── tests/
+│   ├── integration/
+│   └── e2e/
+└── docs/
 ```
 
-## Getting Started
+## 架構概覽
 
-1. Click "Use this template" on GitHub to create a new project
-2. Clone your new repository
-3. Update the module name in `go.mod`
-4. Start implementing your domain model in `internal/domain`
+採用 **Clean Architecture + Hexagonal Architecture + DDD** 設計：
 
-## Architecture Overview
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                        Adapter Layer                        │
+│                   (HTTP, gRPC, Consumer)                    │
+├─────────────────────────────────────────────────────────────┤
+│                      Application Layer                      │
+│                  (Use Cases, DTOs, Ports)                   │
+├─────────────────────────────────────────────────────────────┤
+│                        Domain Layer                         │
+│         (Aggregates, Entities, Value Objects)               │
+├─────────────────────────────────────────────────────────────┤
+│                    Infrastructure Layer                     │
+│        (Persistence, Messaging, External Services)          │
+└─────────────────────────────────────────────────────────────┘
 
-This template follows Clean Architecture and DDD principles:
+依賴方向：外層 → 內層（Domain 不依賴任何外層）
+```
 
-- **Domain Layer**: Core business logic and rules, including:
-  - Entities and Aggregates
-  - Value Objects
-  - Domain Services
-  - Repository Interfaces
-  
-- **Use Case Layer**: Application flows and coordination:
-  - Commands (write operations)
-  - Queries (read operations)
-  - Behaviors (complex workflows)
-  - Event Handlers
+### 層級職責
 
-- **Interface Adapters**: Multiple delivery mechanisms:
-  - HTTP REST APIs
-  - gRPC Services
-  - Message Consumers
+| 層級               | 職責                   | 元件                                                  |
+| ------------------ | ---------------------- | ----------------------------------------------------- |
+| **Domain**         | 核心業務邏輯與規則     | Aggregate, Entity, Value Object, Repository Interface |
+| **Application**    | 用例編排，協調領域層   | Use Case, DTO, Port, Mapper                           |
+| **Adapter**        | 處理外部請求，轉換格式 | HTTP Handler, gRPC Service, Consumer                  |
+| **Infrastructure** | 技術基礎設施實作       | Repository Impl, Config, Logger, External             |
 
-- **Infrastructure**: External concerns:
-  - Database Implementations
-  - External Service Clients
-  - Message Brokers
+## 開發指令
 
-## Key Design Principles
+### 建置與執行
 
-1. Dependencies flow inward (domain at the center)
-2. Domain layer has no external dependencies
-3. Use interfaces for infrastructure concerns
-4. Separation of commands and queries (CQRS)
-5. Domain events for cross-boundary communication
+```bash
+go run cmd/service/main.go
+go build -o bin/service cmd/service/main.go
+```
 
-## Documentation
+### 測試
 
-Each directory contains its own README.md with specific guidance for that component.
+```bash
+go test ./...                           # 全部測試
+go test -cover ./...                    # 覆蓋率
+go test -race ./...                     # 競態檢測
+go test -run TestName ./path/to/pkg     # 特定測試
+```
 
-## Testing
+### 程式碼品質
 
-- Unit tests alongside the code
-- Integration tests in /tests
-- E2E tests in /tests/e2e
+```bash
+golangci-lint run           # Lint（提交前必須通過）
+golangci-lint run --fix     # 自動修復
+gofmt -w .                  # 格式化
+goimports -w .              # 整理 imports
+```
 
-## License
+### 依賴管理
 
-MIT License - see [LICENSE](LICENSE) file for details
+```bash
+go mod tidy                 # 整理依賴
+go mod verify               # 驗證依賴
+```
+
+### 程式碼產生
+
+```bash
+go generate ./...                       # 產生 Mocks
+go generate ./cmd/service/...           # Wire 依賴注入
+swag init -g cmd/service/main.go        # Swagger 文件
+```
+
+## DDD 實踐指南
+
+### Domain Entity
+
+```go
+// internal/domain/order/order.go
+package order
+
+type Order struct {
+    id        string       // private fields
+    userID    string
+    items     []Item
+    status    Status
+    createdAt time.Time
+}
+
+// Constructor - 確保物件永遠有效
+func NewOrder(id, userID string, items []Item) (*Order, error) {
+    if id == "" {
+        return nil, errors.New("empty order id")
+    }
+    if len(items) == 0 {
+        return nil, errors.New("order must have at least one item")
+    }
+    return &Order{
+        id:        id,
+        userID:    userID,
+        items:     items,
+        status:    StatusPending,
+        createdAt: time.Now(),
+    }, nil
+}
+
+// Behavior - 方法名稱反映業務行為
+func (o *Order) Confirm() error {
+    if o.status != StatusPending {
+        return ErrCannotConfirm
+    }
+    o.status = StatusConfirmed
+    return nil
+}
+
+// Getter (唯讀)
+func (o *Order) ID() string { return o.id }
+```
+
+### Repository Interface (Domain Layer)
+
+```go
+// internal/domain/order/repository.go
+package order
+
+type Repository interface {
+    Get(ctx context.Context, id string) (*Order, error)
+    Save(ctx context.Context, order *Order) error
+    Update(ctx context.Context, id string,
+        updateFn func(ctx context.Context, o *Order) (*Order, error)) error
+}
+```
+
+### Use Case (Application Layer)
+
+```go
+// internal/application/usecase/confirm_order.go
+package usecase
+
+type ConfirmOrderUseCase struct {
+    repo     order.Repository
+    notifier port.NotificationService
+}
+
+func (uc *ConfirmOrderUseCase) Execute(ctx context.Context, input dto.ConfirmOrderInput) error {
+    return uc.repo.Update(ctx, input.OrderID,
+        func(ctx context.Context, o *order.Order) (*order.Order, error) {
+            if err := o.Confirm(); err != nil {
+                return nil, err
+            }
+            if err := uc.notifier.SendConfirmation(ctx, o.UserID()); err != nil {
+                return nil, err
+            }
+            return o, nil
+        },
+    )
+}
+```
+
+### 設計原則
+
+1. **Domain 物件欄位皆為 private** - 透過 Getter 存取
+2. **Constructor 驗證** - 物件永遠處於有效狀態
+3. **行為導向命名** - `Confirm()` 而非 `SetStatus()`
+4. **Repository 介面在 Domain** - 依賴反轉
+5. **Use Case 只做編排** - 業務邏輯放 Domain
+6. **按聚合組織套件** - 相關程式碼放一起
+
+## 測試策略
+
+| 類型     | 位置                     | 說明               |
+| -------- | ------------------------ | ------------------ |
+| 單元測試 | `*_test.go` 與程式碼並列 | 測試單一函數/方法  |
+| 整合測試 | `tests/integration/`     | 測試元件間整合     |
+| E2E 測試 | `tests/e2e/`             | 測試完整使用者流程 |
+
+- 使用 **Table-Driven Tests** 處理多種情境
+- 遵循 **Arrange-Act-Assert** 模式
+- Domain Layer 必須 100% 覆蓋
+
+## 提交前檢查清單
+
+- [ ] `golangci-lint run` 通過
+- [ ] `go test ./...` 全部通過
+- [ ] `go mod tidy` 已執行
+- [ ] `gofmt -w .` 已執行
+
+## 授權條款
+
+MIT License - 詳見 [LICENSE](LICENSE)
