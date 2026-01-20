@@ -15,11 +15,15 @@ cd your-project
 # 3. 更新模組名稱
 go mod edit -module github.com/your-org/your-project
 
-# 4. 安裝依賴
-go mod tidy
+# 4. 安裝 Task（如尚未安裝）
+# macOS: brew install go-task
+# 其他系統: https://taskfile.dev/installation/
 
-# 5. 執行服務
-go run cmd/service/main.go
+# 5. 安裝依賴
+task tidy
+
+# 6. 執行服務
+task run
 ```
 
 ## 專案結構
@@ -103,44 +107,55 @@ go run cmd/service/main.go
 
 ## 開發指令
 
+本專案使用 [Task](https://taskfile.dev/) 管理開發工作流程。執行 `task` 可查看所有可用任務。
+
 ### 建置與執行
 
 ```bash
-go run cmd/service/main.go
-go build -o bin/service cmd/service/main.go
+task run                    # 執行服務
+task build                  # 編譯二進位檔案
 ```
 
 ### 測試
 
 ```bash
-go test ./...                           # 全部測試
-go test -cover ./...                    # 覆蓋率
-go test -race ./...                     # 競態檢測
-go test -run TestName ./path/to/pkg     # 特定測試
+task test                   # 執行全部測試
+task test:cover             # 測試覆蓋率
+task test:race              # 競態檢測
+task test:all               # 執行所有測試變體
 ```
 
 ### 程式碼品質
 
 ```bash
-golangci-lint run           # Lint（提交前必須通過）
-golangci-lint run --fix     # 自動修復
-gofmt -w .                  # 格式化
-goimports -w .              # 整理 imports
+task lint                   # Lint 檢查（提交前必須通過）
+task lint:fix               # Lint 自動修復
+task fmt                    # 格式化程式碼
+task imports                # 整理 imports
 ```
 
 ### 依賴管理
 
 ```bash
-go mod tidy                 # 整理依賴
-go mod verify               # 驗證依賴
+task tidy                   # 整理依賴
+task verify                 # 驗證依賴
 ```
 
 ### 程式碼產生
 
 ```bash
-go generate ./...                       # 產生 Mocks
-go generate ./cmd/service/...           # Wire 依賴注入
-swag init -g cmd/service/main.go        # Swagger 文件
+task generate               # 產生 Mocks
+task generate:wire          # Wire 依賴注入
+task swagger                # Swagger 文件
+```
+
+### 開發工作流程
+
+```bash
+task dev                    # 開發檢查（lint + test）
+task ci                     # CI 流程（fmt, lint, test, build）
+task check                  # 提交前完整檢查
+task clean                  # 清理編譯產物
 ```
 
 ## DDD 實踐指南
@@ -252,10 +267,12 @@ func (uc *ConfirmOrderUseCase) Execute(ctx context.Context, input dto.ConfirmOrd
 
 ## 提交前檢查清單
 
-- [ ] `golangci-lint run` 通過
-- [ ] `go test ./...` 全部通過
-- [ ] `go mod tidy` 已執行
-- [ ] `gofmt -w .` 已執行
+執行 `task check` 會自動完成以下檢查：
+
+- [ ] `task fmt` - 格式化程式碼
+- [ ] `task tidy` - 整理依賴
+- [ ] `task lint` - Lint 檢查通過
+- [ ] `task test` - 全部測試通過
 
 ## 授權條款
 

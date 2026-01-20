@@ -61,7 +61,7 @@ type Redis struct {
 
 // Log contains logging configuration.
 type Log struct {
-	Level  string `mapstructure:"level"` // debug, info, warn, error
+	Level  string `mapstructure:"level"`  // debug, info, warn, error
 	Format string `mapstructure:"format"` // json, text
 }
 
