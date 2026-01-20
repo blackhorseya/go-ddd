@@ -276,4 +276,4 @@ func (uc *ConfirmOrderUseCase) Execute(ctx context.Context, input dto.ConfirmOrd
 
 ## 授權條款
 
-MIT License - 詳見 [LICENSE](LICENSE)
+詳見 [LICENSE](LICENSE)
