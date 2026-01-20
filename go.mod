@@ -2,12 +2,7 @@ module github.com/blackhorseya/go-ddd
 
 go 1.24.6
 
-require (
-	github.com/golangci/golangci-lint v1.64.8
-	github.com/spf13/viper v1.12.0
-	github.com/swaggo/swag v1.16.6
-	go.uber.org/mock v0.6.0
-)
+require github.com/spf13/viper v1.12.0
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
@@ -79,6 +74,7 @@ require (
 	github.com/golangci/dupl v0.0.0-20250308024227-f665c8d69b32 // indirect
 	github.com/golangci/go-printf-func-name v0.1.0 // indirect
 	github.com/golangci/gofmt v0.0.0-20250106114630-d62b90e6713d // indirect
+	github.com/golangci/golangci-lint v1.64.8 // indirect
 	github.com/golangci/misspell v0.6.0 // indirect
 	github.com/golangci/plugin-module-register v0.1.1 // indirect
 	github.com/golangci/revgrep v0.8.0 // indirect
@@ -170,6 +166,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
+	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/tdakkota/asciicheck v0.4.1 // indirect
 	github.com/tetafro/godot v1.5.0 // indirect
 	github.com/timakin/bodyclose v0.0.0-20241017074812-ed6a65f985e3 // indirect
@@ -190,6 +187,7 @@ require (
 	go-simpler.org/sloglint v0.9.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
+	go.uber.org/mock v0.6.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20250210185358-939b2ce775ac // indirect
@@ -209,4 +207,10 @@ require (
 	mvdan.cc/gofumpt v0.7.0 // indirect
 	mvdan.cc/unparam v0.0.0-20240528143540-8a5130ca722f // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+tool (
+	github.com/golangci/golangci-lint/cmd/golangci-lint
+	github.com/swaggo/swag/cmd/swag
+	go.uber.org/mock/mockgen
 )
