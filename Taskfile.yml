@@ -1,0 +1,159 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+vars:
+  MODULE: github.com/blackhorseya/go-ddd
+  BINARY: service
+  BUILD_DIR: bin
+
+tasks:
+  # ============================================================================
+  # Default
+  # ============================================================================
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # ============================================================================
+  # Build & Run
+  # ============================================================================
+  build:
+    desc: Build the service binary
+    cmds:
+      - go build -o {{.BUILD_DIR}}/{{.BINARY}} cmd/service/main.go
+    sources:
+      - "**/*.go"
+    generates:
+      - "{{.BUILD_DIR}}/{{.BINARY}}"
+
+  run:
+    desc: Run the service
+    cmds:
+      - go run cmd/service/main.go
+
+  # ============================================================================
+  # Test
+  # ============================================================================
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  test:cover:
+    desc: Run tests with coverage
+    cmds:
+      - go test -cover ./...
+
+  test:race:
+    desc: Run tests with race detection
+    cmds:
+      - go test -race ./...
+
+  test:all:
+    desc: Run all test variants
+    cmds:
+      - task: test
+      - task: test:race
+      - task: test:cover
+
+  # ============================================================================
+  # Code Quality
+  # ============================================================================
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - go tool golangci-lint run
+
+  lint:fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - go tool golangci-lint run --fix
+
+  fmt:
+    desc: Format code with gofmt
+    cmds:
+      - gofmt -w .
+
+  imports:
+    desc: Organize imports with goimports
+    cmds:
+      - goimports -w .
+
+  # ============================================================================
+  # Dependencies
+  # ============================================================================
+  tidy:
+    desc: Tidy go modules
+    cmds:
+      - go mod tidy
+
+  verify:
+    desc: Verify dependencies
+    cmds:
+      - go mod verify
+
+  # ============================================================================
+  # Code Generation
+  # ============================================================================
+  generate:
+    desc: Run go generate
+    cmds:
+      - go generate ./...
+
+  generate:wire:
+    desc: Generate Wire dependency injection
+    cmds:
+      - go generate ./cmd/service/...
+
+  swagger:
+    desc: Generate Swagger documentation
+    cmds:
+      - go tool swag init -g cmd/service/main.go
+
+  mock:
+    desc: Generate mocks
+    cmds:
+      - go generate ./...
+
+  # ============================================================================
+  # Development Workflow
+  # ============================================================================
+  dev:
+    desc: Run development checks (lint + test)
+    cmds:
+      - task: lint
+      - task: test
+
+  ci:
+    desc: Run CI pipeline (fmt, lint, test, build)
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
+      - task: build
+
+  # ============================================================================
+  # Pre-commit Checklist
+  # ============================================================================
+  check:
+    desc: Run all pre-commit checks
+    cmds:
+      - task: fmt
+      - task: tidy
+      - task: lint
+      - task: test
+    summary: |
+      Pre-commit checklist:
+      1. golangci-lint run passed
+      2. go test ./... all passed
+      3. go mod tidy executed
+      4. gofmt -w . executed
+
+  # ============================================================================
+  # Clean
+  # ============================================================================
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
