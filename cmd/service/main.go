@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
@@ -9,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
+	"github.com/blackhorseya/go-ddd/pkg/contextx"
+	"github.com/blackhorseya/go-ddd/pkg/logx"
 )
 
 func main() {
@@ -22,10 +23,21 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	log.Printf("Starting %s in %s mode", cfg.App.Name, cfg.App.Env)
+	// Initialize logger
+	logger := logx.MustNew(&cfg.Log)
+	logger.SetAsDefault()
 
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Create base context with service info
+	ctx := contextx.Background().
+		WithService(cfg.App.Name).
+		WithEnvironment(cfg.App.Env)
+
+	ctx.Info("service starting",
+		"http_host", cfg.Server.HTTP.Host,
+		"http_port", cfg.Server.HTTP.Port,
+		"grpc_host", cfg.Server.GRPC.Host,
+		"grpc_port", cfg.Server.GRPC.Port,
+	)
 
 	// Setup signal handling
 	signals := make(chan os.Signal, 1)
@@ -36,10 +48,7 @@ func main() {
 	// - Initialize infrastructure (database, redis, etc.)
 	// - Start HTTP/gRPC servers
 
-	log.Printf("HTTP server listening on %s:%d", cfg.Server.HTTP.Host, cfg.Server.HTTP.Port)
-	log.Printf("gRPC server listening on %s:%d", cfg.Server.GRPC.Host, cfg.Server.GRPC.Port)
-
 	// Wait for termination signal
 	<-signals
-	log.Println("Service shutting down...")
+	ctx.Info("service shutting down")
 }
