@@ -73,6 +73,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.semantic.outputs.version }}
 
     steps:
       - name: Checkout
@@ -81,6 +83,16 @@ jobs:
           fetch-depth: 0
 
       - name: Run semantic-release
+        id: semantic
         uses: go-semantic-release/action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-publish:
+    name: Build & Publish
+    needs: release
+    if: needs.release.outputs.version != ''
+    uses: ./.github/workflows/build-publish.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    secrets: inherit
