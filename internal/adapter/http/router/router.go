@@ -8,18 +8,20 @@ import (
 
 // Options holds router configuration.
 type Options struct {
-	Mode string // gin.DebugMode, gin.ReleaseMode, gin.TestMode
-	CORS cors.Config
+	Mode        string // gin.DebugMode, gin.ReleaseMode, gin.TestMode
+	ServiceName string // Service name for tracing
+	CORS        cors.Config
 }
 
 // DefaultOptions returns default router options.
-func DefaultOptions() Options {
+func DefaultOptions(serviceName string) Options {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 
 	return Options{
-		Mode: gin.ReleaseMode,
-		CORS: corsConfig,
+		Mode:        gin.ReleaseMode,
+		ServiceName: serviceName,
+		CORS:        corsConfig,
 	}
 }
 
@@ -32,6 +34,8 @@ func New(opts Options) *gin.Engine {
 	// Global middleware
 	r.Use(gin.Recovery())
 	r.Use(cors.New(opts.CORS))
+	r.Use(middleware.Tracing(opts.ServiceName))
+	r.Use(middleware.TraceID())
 	r.Use(middleware.Logging())
 
 	return r

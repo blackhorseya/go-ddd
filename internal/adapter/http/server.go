@@ -21,8 +21,8 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP server.
-func NewServer(cfg config.HTTP) *Server {
-	opts := router.DefaultOptions()
+func NewServer(cfg config.HTTP, serviceName string) *Server {
+	opts := router.DefaultOptions(serviceName)
 	r := router.New(opts)
 
 	// Register handlers

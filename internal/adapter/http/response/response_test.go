@@ -22,8 +22,8 @@ func setupTestContext() (*gin.Context, *httptest.ResponseRecorder) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodGet, "/test", nil)
 
-	// Add request ID to context
-	ctx := contextx.WithRequestID(c.Request.Context(), "test-request-id")
+	// Add trace ID to context (fallback method for testing without OTel)
+	ctx := contextx.WithTraceID(c.Request.Context(), "test-trace-id")
 	c.Request = c.Request.WithContext(ctx)
 
 	return c, w
@@ -44,7 +44,7 @@ func TestOK(t *testing.T) {
 	assert.True(t, resp.Success)
 	assert.NotNil(t, resp.Data)
 	assert.Nil(t, resp.Error)
-	assert.Equal(t, "test-request-id", resp.Meta.RequestID)
+	assert.Equal(t, "test-trace-id", resp.Meta.TraceID)
 	assert.False(t, resp.Meta.Timestamp.IsZero())
 }
 

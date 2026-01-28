@@ -21,7 +21,9 @@ func Logging() gin.HandlerFunc {
 		clientIP := c.ClientIP()
 		method := c.Request.Method
 
+		traceID := contextx.GetTraceID(c.Request.Context())
 		ctx := contextx.From(c.Request.Context()).WithFields(
+			"trace_id", traceID,
 			"status", status,
 			"method", method,
 			"path", path,

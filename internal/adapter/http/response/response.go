@@ -20,7 +20,7 @@ type Response struct {
 
 // Meta contains metadata about the response.
 type Meta struct {
-	RequestID  string      `json:"request_id,omitempty"`
+	TraceID    string      `json:"trace_id,omitempty"`
 	Timestamp  time.Time   `json:"timestamp"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
@@ -46,11 +46,11 @@ type FieldError struct {
 	Message string `json:"message"`
 }
 
-// newMeta creates a new Meta with request ID from context.
+// newMeta creates a new Meta with trace ID from context.
 func newMeta(c *gin.Context) Meta {
-	requestID := contextx.GetRequestID(c.Request.Context())
+	traceID := contextx.GetTraceID(c.Request.Context())
 	return Meta{
-		RequestID: requestID,
+		TraceID:   traceID,
 		Timestamp: time.Now().UTC(),
 	}
 }

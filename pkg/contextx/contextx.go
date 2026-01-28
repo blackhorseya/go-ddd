@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"runtime"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Logger defines the interface for structured logging.
@@ -225,8 +227,16 @@ func WithTraceID(c context.Context, traceID string) context.Context {
 }
 
 // GetTraceID extracts the trace ID from context.
+// It first checks for an OpenTelemetry span context, then falls back to context value.
 // Returns empty string if not found.
 func GetTraceID(c context.Context) string {
+	// First, try to get trace ID from OpenTelemetry span context
+	span := trace.SpanFromContext(c)
+	if span.SpanContext().HasTraceID() {
+		return span.SpanContext().TraceID().String()
+	}
+
+	// Fallback to context value
 	if v, ok := c.Value(traceIDKey).(string); ok {
 		return v
 	}
@@ -406,6 +416,21 @@ func (ctx *Contextx) HasUserID() bool {
 // HasTraceID checks if the context has a trace ID.
 func (ctx *Contextx) HasTraceID() bool {
 	return ctx.TraceID() != ""
+}
+
+// GetSpanID extracts the span ID from an OpenTelemetry span context.
+// Returns empty string if no span is active.
+func GetSpanID(c context.Context) string {
+	span := trace.SpanFromContext(c)
+	if span.SpanContext().HasSpanID() {
+		return span.SpanContext().SpanID().String()
+	}
+	return ""
+}
+
+// SpanID returns the span ID from context.
+func (ctx *Contextx) SpanID() string {
+	return GetSpanID(ctx.Context)
 }
 
 // LogFields returns common context values as log fields.

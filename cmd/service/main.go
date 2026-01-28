@@ -12,6 +12,7 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/blackhorseya/go-ddd/pkg/logx"
+	"github.com/blackhorseya/go-ddd/pkg/otelx"
 )
 
 func main() {
@@ -34,6 +35,20 @@ func main() {
 		WithService(cfg.App.Name).
 		WithEnvironment(cfg.App.Env)
 
+	// Initialize OpenTelemetry tracing
+	otelCfg := otelx.DefaultConfig()
+	otelCfg.ServiceName = cfg.App.Name
+	otelCfg.Environment = cfg.App.Env
+	tp, err := otelx.Setup(ctx, otelCfg)
+	if err != nil {
+		log.Fatalf("failed to setup tracing: %v", err)
+	}
+	defer func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			ctx.Error("failed to shutdown tracer provider", "error", err)
+		}
+	}()
+
 	ctx.Info("service starting",
 		"http_host", cfg.Server.HTTP.Host,
 		"http_port", cfg.Server.HTTP.Port,
@@ -49,7 +64,7 @@ func main() {
 	runCtx, cancel := context.WithCancel(ctx)
 
 	// Initialize HTTP server
-	server := httpserver.NewServer(cfg.Server.HTTP)
+	server := httpserver.NewServer(cfg.Server.HTTP, cfg.App.Name)
 
 	// Start HTTP server in goroutine
 	errCh := make(chan error, 1)
