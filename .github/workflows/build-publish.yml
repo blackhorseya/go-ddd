@@ -1,4 +1,8 @@
+# Build & Publish workflow for Go DDD project
+# Triggers: after CI completes on main, or manual dispatch
+# Jobs: build binaries, docker images, push to GHCR
 name: Build & Publish
+run-name: "Build & Publish: ${{ inputs.version || github.event.workflow_run.head_commit.message || 'latest' }} by @${{ github.actor }}"
 
 on:
   workflow_run:
@@ -89,3 +93,18 @@ jobs:
         run: task release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: steps.tag.outputs.version != ''
+        run: |
+          echo "## Build & Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ steps.tag.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Actor** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts 📦" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Docker Image](https://github.com/${{ github.repository }}/pkgs/container/${GITHUB_REPOSITORY#*/})" >> $GITHUB_STEP_SUMMARY
