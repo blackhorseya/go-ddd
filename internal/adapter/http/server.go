@@ -11,7 +11,6 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/router"
 	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
-	"github.com/blackhorseya/go-ddd/pkg/logx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,12 +18,11 @@ import (
 type Server struct {
 	server *http.Server
 	router *gin.Engine
-	logger *logx.Logger
 }
 
 // NewServer creates a new HTTP server.
-func NewServer(cfg config.HTTP, logger *logx.Logger) *Server {
-	opts := router.DefaultOptions(logger)
+func NewServer(cfg config.HTTP) *Server {
+	opts := router.DefaultOptions()
 	r := router.New(opts)
 
 	// Register handlers
@@ -41,7 +39,6 @@ func NewServer(cfg config.HTTP, logger *logx.Logger) *Server {
 	return &Server{
 		server: srv,
 		router: r,
-		logger: logger,
 	}
 }
 

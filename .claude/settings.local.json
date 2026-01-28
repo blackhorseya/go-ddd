@@ -15,7 +15,8 @@
       "mcp__plugin_serena_serena__find_symbol",
       "mcp__plugin_serena_serena__list_memories",
       "mcp__plugin_serena_serena__read_memory",
-      "mcp__plugin_serena_serena__think_about_collected_information"
+      "mcp__plugin_serena_serena__think_about_collected_information",
+      "mcp__plugin_serena_serena__think_about_task_adherence"
     ],
     "deny": [],
     "ask": []

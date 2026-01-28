@@ -3,12 +3,12 @@ package middleware
 import (
 	"time"
 
-	"github.com/blackhorseya/go-ddd/pkg/logx"
+	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/gin-gonic/gin"
 )
 
-// Logging returns a middleware that logs HTTP requests.
-func Logging(logger *logx.Logger) gin.HandlerFunc {
+// Logging returns a middleware that logs HTTP requests using contextx.
+func Logging() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -21,7 +21,7 @@ func Logging(logger *logx.Logger) gin.HandlerFunc {
 		clientIP := c.ClientIP()
 		method := c.Request.Method
 
-		reqLogger := logger.With(
+		ctx := contextx.From(c.Request.Context()).WithFields(
 			"status", status,
 			"method", method,
 			"path", path,
@@ -32,16 +32,16 @@ func Logging(logger *logx.Logger) gin.HandlerFunc {
 		)
 
 		if len(c.Errors) > 0 {
-			reqLogger.Error(c.Errors.String())
+			ctx.Error(c.Errors.String())
 			return
 		}
 
 		if status >= 500 {
-			reqLogger.Error("server error")
+			ctx.Error("server error")
 		} else if status >= 400 {
-			reqLogger.Warn("client error")
+			ctx.Warn("client error")
 		} else {
-			reqLogger.Info("request completed")
+			ctx.Info("request completed")
 		}
 	}
 }
