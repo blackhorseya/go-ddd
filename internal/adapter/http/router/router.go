@@ -4,6 +4,10 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/blackhorseya/go-ddd/api/openapi" // swagger docs
 )
 
 // Options holds router configuration.
@@ -37,6 +41,9 @@ func New(opts Options) *gin.Engine {
 	r.Use(middleware.Tracing(opts.ServiceName))
 	r.Use(middleware.TraceID())
 	r.Use(middleware.Logging())
+
+	// Swagger documentation
+	r.GET("/api/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

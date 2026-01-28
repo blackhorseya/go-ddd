@@ -109,7 +109,7 @@ tasks:
   swagger:
     desc: Generate Swagger documentation
     cmds:
-      - go tool swag init -g cmd/service/main.go
+      - go tool swag init -g cmd/service/main.go -o ./api/openapi --parseDependency --parseInternal
 
   mock:
     desc: Generate mocks

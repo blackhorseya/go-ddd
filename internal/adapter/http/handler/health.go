@@ -25,11 +25,25 @@ func (h *HealthHandler) Register(r *gin.Engine) {
 }
 
 // Liveness handles liveness probe.
+//
+//	@Summary		Liveness probe
+//	@Description	檢查服務是否存活
+//	@Tags			health
+//	@Produce		json
+//	@Success		200	{object}	response.Response{data=HealthStatus}
+//	@Router			/healthz [get]
 func (h *HealthHandler) Liveness(c *gin.Context) {
 	response.OK(c, HealthStatus{Status: "ok"})
 }
 
 // Readiness handles readiness probe.
+//
+//	@Summary		Readiness probe
+//	@Description	檢查服務是否準備好接收流量
+//	@Tags			health
+//	@Produce		json
+//	@Success		200	{object}	response.Response{data=HealthStatus}
+//	@Router			/readyz [get]
 func (h *HealthHandler) Readiness(c *gin.Context) {
 	// TODO: Add dependency checks (database, cache, etc.)
 	response.OK(c, HealthStatus{Status: "ok"})

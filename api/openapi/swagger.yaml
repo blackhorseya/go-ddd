@@ -1,0 +1,103 @@
+definitions:
+  github_com_blackhorseya_go-ddd_internal_adapter_http_response.Error:
+    properties:
+      code:
+        type: string
+      details:
+        items:
+          $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.FieldError'
+        type: array
+      message:
+        type: string
+    type: object
+  github_com_blackhorseya_go-ddd_internal_adapter_http_response.FieldError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  github_com_blackhorseya_go-ddd_internal_adapter_http_response.Meta:
+    properties:
+      pagination:
+        $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Pagination'
+      timestamp:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  github_com_blackhorseya_go-ddd_internal_adapter_http_response.Pagination:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Error'
+      meta:
+        $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Meta'
+      success:
+        type: boolean
+    type: object
+  internal_adapter_http_handler.HealthStatus:
+    properties:
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Go DDD 範本專案 API，實作 Clean Architecture 與 Domain-Driven Design 原則
+  title: Go DDD Service API
+  version: "1.0"
+paths:
+  /healthz:
+    get:
+      description: 檢查服務是否存活
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_adapter_http_handler.HealthStatus'
+              type: object
+      summary: Liveness probe
+      tags:
+      - health
+  /readyz:
+    get:
+      description: 檢查服務是否準備好接收流量
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_adapter_http_handler.HealthStatus'
+              type: object
+      summary: Readiness probe
+      tags:
+      - health
+securityDefinitions:
+  Bearer:
+    description: '輸入 Bearer token，格式: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
