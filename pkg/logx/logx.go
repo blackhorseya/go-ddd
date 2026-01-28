@@ -36,8 +36,9 @@ func New(cfg *Config) (*Logger, error) {
 	}
 
 	opts := &slog.HandlerOptions{
-		Level:     level,
-		AddSource: cfg.AddSource,
+		Level:       level,
+		AddSource:   cfg.AddSource,
+		ReplaceAttr: shortenSource,
 	}
 
 	handler, err := createHandler(cfg.Format, writer, opts)
@@ -105,6 +106,29 @@ func createHandler(format string, w io.Writer, opts *slog.HandlerOptions) (slog.
 	}
 }
 
+// shortenSource shortens the source file path to be relative from project markers.
+// It looks for /internal/, /pkg/, or /cmd/ and keeps the relative path from there.
+func shortenSource(_ []string, a slog.Attr) slog.Attr {
+	if a.Key != slog.SourceKey {
+		return a
+	}
+
+	source, ok := a.Value.Any().(*slog.Source)
+	if !ok {
+		return a
+	}
+
+	// Find project markers and shorten path
+	for _, marker := range []string{"/internal/", "/pkg/", "/cmd/"} {
+		if idx := strings.LastIndex(source.File, marker); idx != -1 {
+			source.File = source.File[idx+1:] // +1 to skip the leading /
+			break
+		}
+	}
+
+	return a
+}
+
 // ============================================================================
 // contextx.Logger interface implementation
 // ============================================================================
@@ -143,9 +167,8 @@ func (l *Logger) WithGroup(name string) *Logger {
 	return &Logger{l.Logger.WithGroup(name)}
 }
 
-// SetAsDefault sets this logger as the default slog logger
-// and as the default contextx logger.
+// SetAsDefault sets this logger as the default slog logger.
+// This allows contextx to use slog directly with correct caller information.
 func (l *Logger) SetAsDefault() {
 	slog.SetDefault(l.Logger)
-	contextx.SetDefaultLogger(l)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/handler"
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/router"
 	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
+	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/blackhorseya/go-ddd/pkg/logx"
 	"github.com/gin-gonic/gin"
 )
@@ -55,7 +56,7 @@ func (s *Server) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 
 	go func() {
-		s.logger.Info("starting HTTP server", "addr", s.server.Addr)
+		contextx.From(ctx).Info("starting HTTP server", "addr", s.server.Addr)
 
 		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
@@ -66,7 +67,7 @@ func (s *Server) Run(ctx context.Context) error {
 	case err := <-errCh:
 		return fmt.Errorf("http server error: %w", err)
 	case <-ctx.Done():
-		s.logger.Info("shutting down HTTP server")
+		contextx.From(ctx).Info("shutting down HTTP server")
 		return s.server.Shutdown(context.Background())
 	}
 }

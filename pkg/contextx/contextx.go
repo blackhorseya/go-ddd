@@ -5,6 +5,8 @@ package contextx
 import (
 	"context"
 	"log/slog"
+	"runtime"
+	"time"
 )
 
 // Logger defines the interface for structured logging.
@@ -114,30 +116,64 @@ func SetDefaultLogger(logger Logger) {
 
 // Debug logs a debug message with optional structured arguments.
 func (ctx *Contextx) Debug(msg string, args ...any) {
-	fields := fieldsFromContext(ctx.Context)
-	allArgs := append(fields, args...)
-	FromContext(ctx.Context).Debug(msg, allArgs...)
+	ctx.logWithCaller(slog.LevelDebug, msg, args...)
 }
 
 // Info logs an info message with optional structured arguments.
 func (ctx *Contextx) Info(msg string, args ...any) {
-	fields := fieldsFromContext(ctx.Context)
-	allArgs := append(fields, args...)
-	FromContext(ctx.Context).Info(msg, allArgs...)
+	ctx.logWithCaller(slog.LevelInfo, msg, args...)
 }
 
 // Warn logs a warning message with optional structured arguments.
 func (ctx *Contextx) Warn(msg string, args ...any) {
-	fields := fieldsFromContext(ctx.Context)
-	allArgs := append(fields, args...)
-	FromContext(ctx.Context).Warn(msg, allArgs...)
+	ctx.logWithCaller(slog.LevelWarn, msg, args...)
 }
 
 // Error logs an error message with optional structured arguments.
 func (ctx *Contextx) Error(msg string, args ...any) {
+	ctx.logWithCaller(slog.LevelError, msg, args...)
+}
+
+// logWithCaller logs a message with the correct caller location.
+// It captures the caller 3 levels up: Callers() -> logWithCaller() -> Info/Debug/etc() -> business code
+func (ctx *Contextx) logWithCaller(level slog.Level, msg string, args ...any) {
+	// Merge context fields with provided args
 	fields := fieldsFromContext(ctx.Context)
 	allArgs := append(fields, args...)
-	FromContext(ctx.Context).Error(msg, allArgs...)
+
+	// Check for custom logger: in context or via SetDefaultLogger
+	// If a custom logger is set, use it (for testing and custom logger support)
+	var customLogger Logger
+	if logger, ok := ctx.Value(loggerKey).(Logger); ok {
+		customLogger = logger
+	} else if _, isSlogAdapter := defaultLogger.(*slogAdapter); !isSlogAdapter {
+		// defaultLogger has been replaced with a custom logger via SetDefaultLogger
+		customLogger = defaultLogger
+	}
+
+	if customLogger != nil {
+		switch level {
+		case slog.LevelDebug:
+			customLogger.Debug(msg, allArgs...)
+		case slog.LevelInfo:
+			customLogger.Info(msg, allArgs...)
+		case slog.LevelWarn:
+			customLogger.Warn(msg, allArgs...)
+		case slog.LevelError:
+			customLogger.Error(msg, allArgs...)
+		}
+		return
+	}
+
+	// For slog default logger, capture caller PC and log directly
+	// Skip: Callers, logWithCaller, Info/Debug/etc
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:])
+
+	// Create record with correct caller info and call handler
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(allArgs...)
+	_ = slog.Default().Handler().Handle(ctx.Context, r)
 }
 
 // WithLogger returns a new Contextx with the given logger attached.
