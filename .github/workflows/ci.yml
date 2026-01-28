@@ -4,9 +4,29 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".goreleaser.yaml"
+      - "Taskfile.yml"
+      - ".golangci.yml"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
+      - ".github/actions/**"
   pull_request:
     branches:
       - main
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - ".goreleaser.yaml"
+      - "Taskfile.yml"
+      - ".golangci.yml"
+      - "Dockerfile"
+      - ".github/workflows/ci.yml"
+      - ".github/actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
