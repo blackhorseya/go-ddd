@@ -2,7 +2,7 @@
 # Triggers: after CI completes on main, or manual dispatch
 # Jobs: semantic-release, build binaries, docker images, push to GHCR
 name: Build & Publish
-run-name: "Build & Publish: ${{ inputs.version || 'auto' }}"
+run-name: "Build & Publish ${{ inputs.version || 'auto' }}"
 
 on:
   workflow_run:
