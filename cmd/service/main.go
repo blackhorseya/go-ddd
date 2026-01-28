@@ -1,7 +1,7 @@
 // Package main is the entry point of the service.
 //
 //	@title			Go DDD Service API
-//	@version		1.0
+//	@version		1.2.0
 //	@description	Go DDD 範本專案 API，實作 Clean Architecture 與 Domain-Driven Design 原則
 //
 //	@securityDefinitions.apikey	Bearer
