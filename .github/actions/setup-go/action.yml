@@ -1,0 +1,26 @@
+# Composite action for Go environment setup with caching
+name: "Setup Go"
+description: "Setup Go with module and lint cache"
+
+inputs:
+  go-version-file:
+    description: "Path to go.mod file for version detection"
+    required: false
+    default: "go.mod"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ inputs.go-version-file }}
+        cache: true
+
+    - name: Cache golangci-lint
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/golangci-lint
+        key: golangci-lint-${{ runner.os }}-${{ hashFiles('.golangci.yml', '.golangci.yaml') }}
+        restore-keys: |
+          golangci-lint-${{ runner.os }}-

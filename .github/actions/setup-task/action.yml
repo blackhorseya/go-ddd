@@ -1,0 +1,18 @@
+# Composite action for Task runner installation
+name: "Setup Task"
+description: "Install Task runner"
+
+inputs:
+  version:
+    description: "Task version to install"
+    required: false
+    default: "3.x"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Task
+      uses: arduino/setup-task@v2
+      with:
+        version: ${{ inputs.version }}
+        repo-token: ${{ github.token }}
