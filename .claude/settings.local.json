@@ -12,7 +12,10 @@
       "Skill(architecture-patterns)",
       "mcp__plugin_serena_serena__read_file",
       "mcp__plugin_serena_serena__get_symbols_overview",
-      "mcp__plugin_serena_serena__find_symbol"
+      "mcp__plugin_serena_serena__find_symbol",
+      "mcp__plugin_serena_serena__list_memories",
+      "mcp__plugin_serena_serena__read_memory",
+      "mcp__plugin_serena_serena__think_about_collected_information"
     ],
     "deny": [],
     "ask": []

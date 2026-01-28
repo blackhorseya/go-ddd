@@ -1,10 +1,14 @@
 package handler
 
 import (
-	"net/http"
-
+	"github.com/blackhorseya/go-ddd/internal/adapter/http/response"
 	"github.com/gin-gonic/gin"
 )
+
+// HealthStatus represents the health check response.
+type HealthStatus struct {
+	Status string `json:"status"`
+}
 
 // HealthHandler handles health check endpoints.
 type HealthHandler struct{}
@@ -22,11 +26,11 @@ func (h *HealthHandler) Register(r *gin.Engine) {
 
 // Liveness handles liveness probe.
 func (h *HealthHandler) Liveness(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	response.OK(c, HealthStatus{Status: "ok"})
 }
 
 // Readiness handles readiness probe.
 func (h *HealthHandler) Readiness(c *gin.Context) {
 	// TODO: Add dependency checks (database, cache, etc.)
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	response.OK(c, HealthStatus{Status: "ok"})
 }
