@@ -1,6 +1,6 @@
 # CI workflow for Go DDD project
 # Runs on push to main and pull requests
-# Jobs: lint, test, build, semantic-release (main only)
+# Jobs: lint, test, build
 name: CI
 run-name: "CI: ${{ github.event.pull_request.title || github.event.head_commit.message }} by @${{ github.actor }}"
 
@@ -86,42 +86,3 @@ jobs:
           echo "- [x] Lint" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Test" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Build" >> $GITHUB_STEP_SUMMARY
-
-  release:
-    name: Semantic Release
-    needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run semantic-release
-        id: semantic
-        uses: go-semantic-release/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Summary
-        run: |
-          echo "## Semantic Release Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -n "${{ steps.semantic.outputs.version }}" ]; then
-            echo "### 🚀 New Release: v${{ steps.semantic.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-            echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| **Version** | \`v${{ steps.semantic.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📦 Build & Publish workflow will be triggered automatically." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### ⏭️ No Release" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "No version bump required based on commit messages." >> $GITHUB_STEP_SUMMARY
-          fi
