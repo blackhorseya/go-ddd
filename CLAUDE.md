@@ -252,3 +252,5 @@ func (o *Order) ID() string { return o.id }
 - 使用 Table-Driven Tests
 - 遵循 Arrange-Act-Assert 模式
 - Domain Layer 必須 100% 覆蓋
+
+Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.

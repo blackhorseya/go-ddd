@@ -5,6 +5,9 @@ vars:
   MODULE: github.com/blackhorseya/go-ddd
   BINARY: service
   BUILD_DIR: bin
+  IMAGE: ghcr.io/blackhorseya/go-ddd
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
 
 tasks:
   # ============================================================================
@@ -151,9 +154,39 @@ tasks:
       4. gofmt -w . executed
 
   # ============================================================================
+  # Release (GoReleaser)
+  # ============================================================================
+  release:check:
+    desc: Validate GoReleaser configuration
+    cmds:
+      - goreleaser check
+
+  release:snapshot:
+    desc: Build a snapshot release (local testing, no publish)
+    cmds:
+      - goreleaser release --snapshot --clean
+
+  release:
+    desc: Create a release (requires GITHUB_TOKEN)
+    cmds:
+      - goreleaser release --clean
+    preconditions:
+      - sh: test -n "$GITHUB_TOKEN"
+        msg: "GITHUB_TOKEN environment variable is required"
+
+  # ============================================================================
+  # Docker Image
+  # ============================================================================
+  image:
+    desc: Build Docker images via GoReleaser (no push)
+    cmds:
+      - goreleaser release --snapshot --clean --skip=publish
+
+  # ============================================================================
   # Clean
   # ============================================================================
   clean:
     desc: Clean build artifacts
     cmds:
       - rm -rf {{.BUILD_DIR}}
+      - rm -rf dist

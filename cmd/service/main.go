@@ -25,6 +25,13 @@ import (
 	"github.com/blackhorseya/go-ddd/pkg/otelx"
 )
 
+// 版本資訊，由 GoReleaser ldflags 注入
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
+
 func main() {
 	// Parse command line flags
 	configPath := flag.String("config", "", "path to config file")
@@ -60,6 +67,9 @@ func main() {
 	}()
 
 	ctx.Info("service starting",
+		"version", Version,
+		"commit", Commit,
+		"build_date", Date,
 		"http_host", cfg.Server.HTTP.Host,
 		"http_port", cfg.Server.HTTP.Port,
 		"grpc_host", cfg.Server.GRPC.Host,
