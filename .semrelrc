@@ -4,7 +4,7 @@
       "name": "cz",
       "options": {
         "minor_release_rules": "feat",
-        "patch_release_rules": "fix, perf, refactor, revert, chore, build"
+        "patch_release_rules": "fix,perf,refactor,revert,chore,build"
       }
     }
   }
