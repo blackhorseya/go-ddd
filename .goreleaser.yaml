@@ -27,6 +27,10 @@ builds:
       - -X main.Version={{.Version}}
       - -X main.Commit={{.ShortCommit}}
       - -X main.Date={{.Date}}
+    hooks:
+      post:
+        - cmd: sh -c 'if [ "{{ .Arch }}" = "arm64" ]; then cp {{ .Path }} {{ dir .Path }}/bootstrap && zip -j {{ dir .Path }}/bootstrap.zip {{ dir .Path }}/bootstrap; fi'
+          output: true
 
 archives:
   - id: default

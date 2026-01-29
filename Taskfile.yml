@@ -183,6 +183,24 @@ tasks:
       - goreleaser release --snapshot --clean --skip=publish
 
   # ============================================================================
+  # Lambda Deployment
+  # ============================================================================
+  deploy:
+    desc: Build and deploy to AWS Lambda
+    cmds:
+      - task: release:snapshot
+      - serverless deploy --stage {{.STAGE}}
+    vars:
+      STAGE: '{{.STAGE | default "dev"}}'
+
+  deploy:remove:
+    desc: Remove Lambda deployment
+    cmds:
+      - serverless remove --stage {{.STAGE}}
+    vars:
+      STAGE: '{{.STAGE | default "dev"}}'
+
+  # ============================================================================
   # Clean
   # ============================================================================
   clean:

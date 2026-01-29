@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/serverless/serverless/main/lib/configSchema.json
+# Serverless Framework v4 configuration for go-ddd
+# Documentation: https://www.serverless.com/framework/docs
+
+service: go-ddd
+
+provider:
+  name: aws
+  runtime: provided.al2023
+  architecture: arm64
+  region: ${opt:region, 'ap-northeast-1'}
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  timeout: 30
+
+functions:
+  api:
+    handler: bootstrap
+    layers:
+      # Lambda Web Adapter - converts HTTP server to Lambda
+      # https://github.com/awslabs/aws-lambda-web-adapter
+      - arn:aws:lambda:${aws:region}:753240598075:layer:LambdaAdapterLayerArm64:24
+    environment:
+      AWS_LWA_PORT: 8080
+      SERVER_HTTP_HOST: "0.0.0.0"
+      SERVER_HTTP_PORT: "8080"
+    events:
+      - httpApi: '*'
+
+package:
+  artifact: dist/service_linux_arm64_v8.0/bootstrap.zip
