@@ -84,7 +84,12 @@ func main() {
 	runCtx, cancel := context.WithCancel(ctx)
 
 	// Initialize HTTP server
-	server := httpserver.NewServer(cfg.Server.HTTP, cfg.App.Name)
+	server := httpserver.NewServer(httpserver.ServerConfig{
+		Host:         cfg.Server.HTTP.Host,
+		Port:         cfg.Server.HTTP.Port,
+		ReadTimeout:  cfg.Server.HTTP.ReadTimeout,
+		WriteTimeout: cfg.Server.HTTP.WriteTimeout,
+	}, cfg.App.Name)
 
 	// Start HTTP server in goroutine
 	errCh := make(chan error, 1)
