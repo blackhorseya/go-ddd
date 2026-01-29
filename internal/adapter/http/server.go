@@ -9,7 +9,6 @@ import (
 
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/handler"
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/router"
-	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/gin-gonic/gin"
 )
@@ -21,7 +20,7 @@ type Server struct {
 }
 
 // NewServer creates a new HTTP server.
-func NewServer(cfg config.HTTP, serviceName string) *Server {
+func NewServer(cfg ServerConfig, serviceName string) *Server {
 	opts := router.DefaultOptions(serviceName)
 	r := router.New(opts)
 
