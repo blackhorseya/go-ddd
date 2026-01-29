@@ -6,17 +6,13 @@ import (
 	"log/slog"
 	"os"
 	"strings"
-
-	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 
-// Logger wraps slog.Logger and implements contextx.Logger interface.
+// Logger wraps slog.Logger and implements the Logger interface.
+// It satisfies contextx.Logger through Go's structural typing (duck typing).
 type Logger struct {
 	*slog.Logger
 }
-
-// Ensure Logger implements contextx.Logger interface.
-var _ contextx.Logger = (*Logger)(nil)
 
 // New creates a new Logger based on the provided configuration.
 // Returns an error if the configuration is invalid.

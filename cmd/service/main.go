@@ -44,7 +44,12 @@ func main() {
 	}
 
 	// Initialize logger
-	logger := logx.MustNew(&cfg.Log)
+	logger := logx.MustNew(&logx.Config{
+		Level:     cfg.Log.Level,
+		Format:    cfg.Log.Format,
+		Output:    cfg.Log.Output,
+		AddSource: cfg.Log.AddSource,
+	})
 	logger.SetAsDefault()
 
 	// Create base context with service info
