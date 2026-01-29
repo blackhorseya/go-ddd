@@ -1,0 +1,16 @@
+# go-semantic-release configuration
+# Ref: https://github.com/go-semantic-release/semantic-release
+
+plugins:
+  commit-analyzer:
+    name: default
+    options:
+      minor:
+        - feat
+      patch:
+        - fix
+        - perf
+        - refactor
+        - revert
+        - chore
+        - build
