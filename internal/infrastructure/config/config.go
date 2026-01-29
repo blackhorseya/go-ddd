@@ -2,17 +2,24 @@ package config
 
 import (
 	"time"
-
-	"github.com/blackhorseya/go-ddd/pkg/logx"
 )
 
 // Config holds all configuration for the service.
 type Config struct {
-	App      App         `mapstructure:"app"`
-	Server   Server      `mapstructure:"server"`
-	Database Database    `mapstructure:"database"`
-	Redis    Redis       `mapstructure:"redis"`
-	Log      logx.Config `mapstructure:"log"`
+	App      App       `mapstructure:"app"`
+	Server   Server    `mapstructure:"server"`
+	Database Database  `mapstructure:"database"`
+	Redis    Redis     `mapstructure:"redis"`
+	Log      LogConfig `mapstructure:"log"`
+}
+
+// LogConfig contains logging configuration.
+// This is defined in infrastructure layer to avoid dependency on pkg/logx.
+type LogConfig struct {
+	Level     string `mapstructure:"level"`
+	Format    string `mapstructure:"format"`
+	Output    string `mapstructure:"output"`
+	AddSource bool   `mapstructure:"add_source"`
 }
 
 // App contains application-level configuration.
