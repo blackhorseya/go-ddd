@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/response"
 	"github.com/gin-gonic/gin"
+
+	"github.com/blackhorseya/go-ddd/internal/adapter/http/response"
 )
 
 // HealthStatus represents the health check response.

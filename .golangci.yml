@@ -1,0 +1,37 @@
+# Refer to golangci-lint's example config file for more options and information:
+# https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
+
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+formatters:
+  enable:
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/blackhorseya/go-ddd
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - revive
+    - staticcheck
+
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

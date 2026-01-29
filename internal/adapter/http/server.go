@@ -7,10 +7,11 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/handler"
 	"github.com/blackhorseya/go-ddd/internal/adapter/http/router"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
-	"github.com/gin-gonic/gin"
 )
 
 // Server wraps the HTTP server with graceful shutdown support.

@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
+	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 
 const (

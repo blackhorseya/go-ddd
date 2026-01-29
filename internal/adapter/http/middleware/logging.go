@@ -3,8 +3,9 @@ package middleware
 import (
 	"time"
 
-	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/gin-gonic/gin"
+
+	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 
 // Logging returns a middleware that logs HTTP requests using contextx.

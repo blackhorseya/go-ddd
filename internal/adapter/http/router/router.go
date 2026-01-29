@@ -1,11 +1,12 @@
 package router
 
 import (
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	"github.com/blackhorseya/go-ddd/internal/adapter/http/middleware"
 
 	_ "github.com/blackhorseya/go-ddd/api/openapi" // swagger docs
 )
