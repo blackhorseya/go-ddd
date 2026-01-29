@@ -1,6 +1,7 @@
 # CI workflow for Go DDD project
 # Runs on push to main and pull requests
 # Jobs: lint, test, build
+# Trigger: chore test
 name: CI
 run-name: "CI: ${{ github.event.pull_request.title || github.event.head_commit.message }} by @${{ github.actor }}"
 
