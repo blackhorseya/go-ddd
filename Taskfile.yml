@@ -24,7 +24,7 @@ tasks:
   build:
     desc: Build the service binary
     cmds:
-      - go build -o {{.BUILD_DIR}}/{{.BINARY}} cmd/service/main.go
+      - go build -o {{.BUILD_DIR}}/{{.BINARY}} ./cmd/service/
     sources:
       - "**/*.go"
     generates:
@@ -33,7 +33,7 @@ tasks:
   run:
     desc: Run the service
     cmds:
-      - go run cmd/service/main.go
+      - go run ./cmd/service/
 
   # ============================================================================
   # Test
