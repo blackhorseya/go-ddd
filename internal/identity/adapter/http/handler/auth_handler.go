@@ -55,6 +55,7 @@ func (h *AuthHandler) RegisterCredential(c *gin.Context) {
 		case errors.Is(err, credential.ErrEmailDuplicated):
 			response.Conflict(c, "email already in use")
 		case errors.Is(err, credential.ErrInvalidEmail),
+			errors.Is(err, credential.ErrPasswordRequired),
 			errors.Is(err, credential.ErrPasswordTooShort),
 			errors.Is(err, credential.ErrPasswordTooLong):
 			response.BadRequest(c, err.Error())

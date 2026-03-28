@@ -14,6 +14,7 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/identity/application/port"
 	"github.com/blackhorseya/go-ddd/internal/identity/application/usecase"
 	"github.com/blackhorseya/go-ddd/internal/identity/domain/credential"
+	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/response"
 )
 
 func setupRouter(t *testing.T) (*gin.Engine, *credential.MockRepository, *port.MockIDGenerator) {
@@ -55,10 +56,15 @@ func TestAuthHandler_RegisterCredential(t *testing.T) {
 			t.Errorf("status = %d, want %d", w.Code, http.StatusCreated)
 		}
 
-		var resp map[string]any
-		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		var resp response.Response
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("Unmarshal response: %v", err)
+		}
 
-		data, _ := resp["data"].(map[string]any)
+		data, ok := resp.Data.(map[string]any)
+		if !ok {
+			t.Fatalf("Data is not map[string]any: %T", resp.Data)
+		}
 		if data["id"] != "c-1" {
 			t.Errorf("data.id = %v, want %q", data["id"], "c-1")
 		}

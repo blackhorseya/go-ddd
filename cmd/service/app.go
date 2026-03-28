@@ -38,24 +38,29 @@ func (a *App) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
 
+	childCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		if err := a.http.Run(ctx); err != nil {
+		if err := a.http.Run(childCtx); err != nil {
 			errCh <- fmt.Errorf("http: %w", err)
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if err := a.grpc.Run(ctx); err != nil {
+		if err := a.grpc.Run(childCtx); err != nil {
 			errCh <- fmt.Errorf("grpc: %w", err)
 		}
 	}()
 
 	select {
 	case err := <-errCh:
+		cancel()
+		wg.Wait()
 		return err
 	case <-ctx.Done():
 		wg.Wait()

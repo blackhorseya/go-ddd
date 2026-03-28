@@ -79,7 +79,9 @@ func TestCredentialRepoImpl_FindByEmail(t *testing.T) {
 	c := context.Background()
 
 	cred := seedCredential(t, "c-1", "alice@example.com")
-	_ = repo.Save(c, cred)
+	if err := repo.Save(c, cred); err != nil {
+		t.Fatalf("Save() setup error: %v", err)
+	}
 
 	t.Run("found", func(t *testing.T) {
 		email, _ := credential.NewEmail("alice@example.com")
@@ -109,7 +111,9 @@ func TestCredentialRepoImpl_Delete(t *testing.T) {
 	c := context.Background()
 
 	cred := seedCredential(t, "c-1", "alice@example.com")
-	_ = repo.Save(c, cred)
+	if err := repo.Save(c, cred); err != nil {
+		t.Fatalf("Save() setup error: %v", err)
+	}
 
 	t.Run("delete existing", func(t *testing.T) {
 		if err := repo.Delete(c, "c-1"); err != nil {
@@ -138,7 +142,9 @@ func TestCredentialRepoImpl_List(t *testing.T) {
 		{"c-2", "b@example.com"},
 		{"c-3", "c@example.com"},
 	} {
-		_ = repo.Save(c, seedCredential(t, s.id, s.email))
+		if err := repo.Save(c, seedCredential(t, s.id, s.email)); err != nil {
+			t.Fatalf("Save(%q) setup error: %v", s.id, err)
+		}
 	}
 
 	t.Run("first page", func(t *testing.T) {

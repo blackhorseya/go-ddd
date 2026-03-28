@@ -91,21 +91,26 @@ func main() {
 	runCtx, cancel := context.WithCancel(ctx)
 
 	// Start application
-	errCh := make(chan error, 1)
+	appErr := make(chan error, 1)
 	go func() {
-		if err := app.Run(runCtx); err != nil {
-			errCh <- err
-		}
+		appErr <- app.Run(runCtx)
 	}()
 
 	// Wait for termination signal or server error
 	select {
 	case sig := <-signals:
 		ctx.Info("received signal", "signal", sig.String())
-	case err := <-errCh:
-		ctx.Error("server error", "error", err)
+		cancel()
+		// Wait for app.Run to finish gracefully
+		if err := <-appErr; err != nil {
+			ctx.Error("app shutdown error", "error", err)
+		}
+	case err := <-appErr:
+		cancel()
+		if err != nil {
+			ctx.Error("server error", "error", err)
+		}
 	}
 
-	cancel()
 	ctx.Info("service shutdown complete")
 }
