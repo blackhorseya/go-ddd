@@ -1,6 +1,6 @@
 # Go DDD Template Project
 
-Go 語言實作 Clean Architecture 與 Domain-Driven Design (DDD) 的專案範本。
+Go 語言實作 **Bounded Context First + Clean Architecture + Domain-Driven Design (DDD)** 的專案範本。
 
 ## 快速開始
 
@@ -19,239 +19,195 @@ go mod edit -module github.com/your-org/your-project
 # macOS: brew install go-task
 # 其他系統: https://taskfile.dev/installation/
 
-# 5. 安裝依賴
+# 5. 複製設定檔
+cp configs/config.example.yaml configs/config.yaml
+
+# 6. 安裝依賴
 task tidy
 
-# 6. 執行服務
+# 7. 執行服務（HTTP :8080, gRPC :9090）
 task run
-```
-
-## 專案結構
-
-```text
-.
-├── cmd/                        # 應用程式進入點
-│   └── service/
-├── internal/                   # 私有應用程式碼
-│   ├── domain/                 # 領域層（按聚合組織）
-│   │   ├── order/              # Order 聚合
-│   │   │   ├── order.go        # 聚合根
-│   │   │   ├── item.go         # 聚合內實體
-│   │   │   ├── repository.go   # Repository 介面
-│   │   │   └── service.go      # 領域服務
-│   │   ├── user/               # User 聚合
-│   │   │   ├── user.go
-│   │   │   └── repository.go
-│   │   ├── valueobject/        # 共用值物件
-│   │   │   ├── money.go
-│   │   │   └── address.go
-│   │   └── event/              # 共用領域事件
-│   ├── application/            # 應用層
-│   │   ├── usecase/            # 用例實作
-│   │   ├── port/               # 外部服務介面
-│   │   ├── dto/                # 資料傳輸物件
-│   │   └── mapper/             # DTO ↔ Domain 映射
-│   ├── adapter/                # 適配器層
-│   │   ├── http/
-│   │   │   ├── handler/
-│   │   │   ├── middleware/
-│   │   │   └── router/
-│   │   ├── grpc/
-│   │   └── consumer/
-│   └── infrastructure/         # 基礎設施層
-│       ├── config/
-│       ├── persistence/
-│       │   ├── postgres/
-│       │   └── redis/
-│       ├── messaging/
-│       ├── external/           # 外部服務客戶端
-│       └── logger/
-├── pkg/                        # 公共可重用套件
-├── configs/                    # 配置檔案
-├── tests/
-│   ├── integration/
-│   └── e2e/
-└── docs/
 ```
 
 ## 架構概覽
 
-採用 **Clean Architecture + Hexagonal Architecture + DDD** 設計：
+採用 **Bounded Context (BC) First** 組織方式：每個 BC 為獨立頂層目錄，內部按 Clean Architecture 分層。
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                        Adapter Layer                        │
-│                   (HTTP, gRPC, Consumer)                    │
-├─────────────────────────────────────────────────────────────┤
-│                      Application Layer                      │
-│                  (Use Cases, DTOs, Ports)                   │
-├─────────────────────────────────────────────────────────────┤
-│                        Domain Layer                         │
-│         (Aggregates, Entities, Value Objects)               │
-├─────────────────────────────────────────────────────────────┤
-│                    Infrastructure Layer                     │
-│        (Persistence, Messaging, External Services)          │
-└─────────────────────────────────────────────────────────────┘
+internal/
+├── shared/                         # Shared Kernel（跨 BC 共用）
+│   ├── domain/                     # 共用領域概念（event, valueobject, pagination）
+│   ├── adapter/                    # HTTP/gRPC server, router, middleware
+│   └── infrastructure/             # config, messaging
+├── identity/                       # Identity BC（認證）
+│   ├── domain/credential/          # Credential 聚合（aggregate root）
+│   ├── application/                # usecase, dto, port, mapper
+│   ├── adapter/http/handler/       # REST API handler
+│   └── infrastructure/             # persistence, idgen
+pkg/                                # 公共可重用套件（contextx, logx, otelx）
+```
 
+### Clean Architecture 分層
+
+```text
 依賴方向：外層 → 內層（Domain 不依賴任何外層）
+
+Adapter Layer        ← HTTP handler, gRPC, Consumer, ACL
+Application Layer    ← Use Cases, DTOs, Ports
+Domain Layer         ← Aggregates, Entities, Value Objects
+Infrastructure Layer ← Persistence, Messaging, External Services
 ```
 
-### 層級職責
+| 層級               | 職責                   | 依賴限制               |
+| ------------------ | ---------------------- | ---------------------- |
+| **Domain**         | 核心業務邏輯與規則     | 僅依賴 `shared/domain` |
+| **Application**    | 用例編排，協調領域層   | 僅依賴 Domain Layer    |
+| **Adapter**        | 處理外部請求，轉換格式 | Domain + Application   |
+| **Infrastructure** | 技術基礎設施實作       | 可依賴所有層           |
 
-| 層級               | 職責                   | 元件                                                  |
-| ------------------ | ---------------------- | ----------------------------------------------------- |
-| **Domain**         | 核心業務邏輯與規則     | Aggregate, Entity, Value Object, Repository Interface |
-| **Application**    | 用例編排，協調領域層   | Use Case, DTO, Port, Mapper                           |
-| **Adapter**        | 處理外部請求，轉換格式 | HTTP Handler, gRPC Service, Consumer                  |
-| **Infrastructure** | 技術基礎設施實作       | Repository Impl, Config, Logger, External             |
+### Dependency Injection
 
-## 開發指令
+使用 [Wire](https://github.com/google/wire) 做編譯期依賴注入。每個 BC 暴露 `ProviderSet`，在 `cmd/service/wire.go` 組裝：
 
-本專案使用 [Task](https://taskfile.dev/) 管理開發工作流程。執行 `task` 可查看所有可用任務。
-
-### 建置與執行
-
-```bash
-task run                    # 執行服務
-task build                  # 編譯二進位檔案
-```
-
-### 測試
-
-```bash
-task test                   # 執行全部測試
-task test:cover             # 測試覆蓋率
-task test:race              # 競態檢測
-task test:all               # 執行所有測試變體
-```
-
-### 程式碼品質
-
-```bash
-task lint                   # Lint 檢查（提交前必須通過）
-task lint:fix               # Lint 自動修復
-task fmt                    # 格式化程式碼
-task imports                # 整理 imports
-```
-
-### 依賴管理
-
-```bash
-task tidy                   # 整理依賴
-task verify                 # 驗證依賴
-```
-
-### 程式碼產生
-
-```bash
-task generate               # 產生 Mocks
-task generate:wire          # Wire 依賴注入
-task swagger                # Swagger 文件
-```
-
-### 開發工作流程
-
-```bash
-task dev                    # 開發檢查（lint + test）
-task ci                     # CI 流程（fmt, lint, test, build）
-task check                  # 提交前完整檢查
-task clean                  # 清理編譯產物
+```text
+cmd/service/wire.go          ← wire.Build() 組裝所有 ProviderSet
+internal/{bc}/wire.go        ← 該 BC 的 ProviderSet
+internal/shared/wire.go      ← Shared Kernel 的 ProviderSet
 ```
 
 ## DDD 實踐指南
 
-### Domain Entity
+### Domain Entity（聚合根）
 
 ```go
-// internal/domain/order/order.go
-package order
+// internal/identity/domain/credential/credential.go
+package credential
 
-type Order struct {
-    id        string       // private fields
-    userID    string
-    items     []Item
+type Credential struct {
+    id        string         // private fields
+    email     Email          // Value Object
+    password  HashedPassword // Value Object
     status    Status
     createdAt time.Time
+    updatedAt time.Time
 }
 
-// Constructor - 確保物件永遠有效
-func NewOrder(id, userID string, items []Item) (*Order, error) {
-    if id == "" {
-        return nil, errors.New("empty order id")
+// Constructor — 確保物件永遠有效
+func NewCredential(params NewCredentialParams) (*Credential, error) {
+    if params.ID == "" {
+        return nil, ErrEmptyID
     }
-    if len(items) == 0 {
-        return nil, errors.New("order must have at least one item")
-    }
-    return &Order{
-        id:        id,
-        userID:    userID,
-        items:     items,
-        status:    StatusPending,
-        createdAt: time.Now(),
+    // ...validation...
+    return &Credential{
+        id:     params.ID,
+        email:  params.Email,
+        status: StatusInactive,
     }, nil
 }
 
-// Behavior - 方法名稱反映業務行為
-func (o *Order) Confirm() error {
-    if o.status != StatusPending {
-        return ErrCannotConfirm
+// Behavior — 方法名稱反映業務行為，內含狀態轉換守衛
+func (x *Credential) Activate() error {
+    if x.status != StatusInactive {
+        return ErrCannotActivate
     }
-    o.status = StatusConfirmed
+    x.status = StatusActive
     return nil
 }
 
-// Getter (唯讀)
-func (o *Order) ID() string { return o.id }
+// Reconstitute — 從持久層還原，不套用業務規則
+func ReconstituteCredential(params ReconstituteCredentialParams) (*Credential, error) { ... }
 ```
 
-### Repository Interface (Domain Layer)
+### Repository Interface（定義在 Domain Layer）
 
 ```go
-// internal/domain/order/repository.go
-package order
+// internal/identity/domain/credential/repository.go
+//go:generate go tool mockgen -destination=mock_${GOFILE} -package=${GOPACKAGE} -source=${GOFILE}
 
 type Repository interface {
-    Get(ctx context.Context, id string) (*Order, error)
-    Save(ctx context.Context, order *Order) error
-    Update(ctx context.Context, id string,
-        updateFn func(ctx context.Context, o *Order) (*Order, error)) error
+    Save(c context.Context, cred *Credential) error
+    FindByID(c context.Context, id string) (*Credential, error)
+    FindByEmail(c context.Context, email Email) (*Credential, error)
+    Delete(c context.Context, id string) error
+    List(c context.Context, req domain.PageRequest) (domain.PageResult[*Credential], error)
 }
 ```
 
-### Use Case (Application Layer)
+### Use Case（Application Layer）
 
 ```go
-// internal/application/usecase/confirm_order.go
-package usecase
-
-type ConfirmOrderUseCase struct {
-    repo     order.Repository
-    notifier port.NotificationService
+// internal/identity/application/usecase/register_credential.go
+type RegisterUseCase struct {
+    repo  credential.Repository
+    idGen port.IDGenerator
 }
 
-func (uc *ConfirmOrderUseCase) Execute(ctx context.Context, input dto.ConfirmOrderInput) error {
-    return uc.repo.Update(ctx, input.OrderID,
-        func(ctx context.Context, o *order.Order) (*order.Order, error) {
-            if err := o.Confirm(); err != nil {
-                return nil, err
-            }
-            if err := uc.notifier.SendConfirmation(ctx, o.UserID()); err != nil {
-                return nil, err
-            }
-            return o, nil
-        },
-    )
+func (uc *RegisterUseCase) Execute(c context.Context, input dto.RegisterInput) (dto.CredentialOutput, error) {
+    // 1. 建立 Value Objects
+    // 2. 建立 Aggregate Root（NewCredential）
+    // 3. 透過 Repository 持久化
+    // 4. 透過 Mapper 轉換為 DTO 回傳
 }
 ```
 
 ### 設計原則
 
-1. **Domain 物件欄位皆為 private** - 透過 Getter 存取
-2. **Constructor 驗證** - 物件永遠處於有效狀態
-3. **行為導向命名** - `Confirm()` 而非 `SetStatus()`
-4. **Repository 介面在 Domain** - 依賴反轉
-5. **Use Case 只做編排** - 業務邏輯放 Domain
-6. **按聚合組織套件** - 相關程式碼放一起
+1. **Domain 物件欄位皆為 private** — 透過 Getter 存取
+2. **Constructor 驗證** — `New*()` 確保物件永遠處於有效狀態
+3. **行為導向命名** — `Activate()` 而非 `SetStatus()`
+4. **Repository 介面在 Domain** — 依賴反轉（Dependency Inversion）
+5. **Use Case 只做編排** — 業務邏輯放 Domain
+6. **按聚合組織套件** — 一個聚合一個 package
+
+## 開發指令
+
+本專案使用 [Task](https://taskfile.dev/) 管理開發工作流程。
+
+```bash
+# 建置與執行
+task run                    # 執行服務
+task build                  # 編譯二進位檔案
+
+# 測試
+task test                   # 執行全部測試
+task test:cover             # 測試覆蓋率
+task test:race              # 競態檢測
+
+# 程式碼品質
+task lint                   # golangci-lint 檢查
+task lint:fix               # Lint 自動修復
+task fmt                    # 格式化程式碼
+
+# 程式碼產生
+task generate               # 產生 Mocks
+task generate:wire          # Wire 依賴注入
+task swagger                # Swagger 文件（輸出至 api/openapi/）
+
+# 開發工作流程
+task dev                    # 開發檢查（lint + test）
+task check                  # 提交前完整檢查（fmt → tidy → lint → test）
+```
+
+### 工具管理
+
+開發工具透過 `go.mod` 的 `tool` directive 管理，以 `go tool <name>` 執行，無需額外安裝：
+
+- `golangci-lint` — Lint
+- `wire` — 依賴注入
+- `swag` — Swagger 文件產生
+- `mockgen` — Mock 產生
+
+## 設定
+
+設定檔：`configs/config.yaml`（參考 `configs/config.example.yaml`）
+
+也可透過命令列旗標指定路徑：
+
+```bash
+go run ./cmd/service/ -config ./configs/config.yaml
+```
+
+支援環境變數覆蓋（Viper），如 `APP_NAME=myservice`。
 
 ## 測試策略
 
@@ -261,19 +217,24 @@ func (uc *ConfirmOrderUseCase) Execute(ctx context.Context, input dto.ConfirmOrd
 | 整合測試 | `tests/integration/`     | 測試元件間整合     |
 | E2E 測試 | `tests/e2e/`             | 測試完整使用者流程 |
 
-- 使用 **Table-Driven Tests** 處理多種情境
-- 遵循 **Arrange-Act-Assert** 模式
+- 使用 **Table-Driven Tests** + **Arrange-Act-Assert** 模式
 - Domain Layer 必須 100% 覆蓋
+- Mock 使用 `go.uber.org/mock`，mock 檔案與介面同目錄
 
-## 提交前檢查清單
+## 部署
 
-執行 `task check` 會自動完成以下檢查：
+```bash
+# GoReleaser（本機測試）
+task release:snapshot
 
-- [ ] `task fmt` - 格式化程式碼
-- [ ] `task tidy` - 整理依賴
-- [ ] `task lint` - Lint 檢查通過
-- [ ] `task test` - 全部測試通過
+# Docker 映像
+task image
+
+# AWS Lambda
+task deploy                 # 預設 dev stage
+task deploy STAGE=prod      # 指定 stage
+```
 
 ## 授權條款
 
-詳見 [LICENSE](LICENSE)
+GPL-3.0 — 詳見 [LICENSE](LICENSE)
