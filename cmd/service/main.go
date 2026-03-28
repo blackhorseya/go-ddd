@@ -18,6 +18,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	grpcserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
 	httpserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
@@ -96,10 +97,21 @@ func main() {
 		WriteTimeout: cfg.Server.HTTP.WriteTimeout,
 	}, cfg.App.Name)
 
-	// Start HTTP server in goroutine
-	errCh := make(chan error, 1)
+	// Initialize gRPC server
+	grpcSrv := grpcserver.NewServer(grpcserver.ServerConfig{
+		Host: cfg.Server.GRPC.Host,
+		Port: cfg.Server.GRPC.Port,
+	}, cfg.App.Name, cfg.IsDevelopment())
+
+	// Start servers in goroutines
+	errCh := make(chan error, 2)
 	go func() {
 		if err := server.Run(runCtx); err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		if err := grpcSrv.Run(runCtx); err != nil {
 			errCh <- err
 		}
 	}()
