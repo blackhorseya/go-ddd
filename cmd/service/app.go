@@ -23,12 +23,12 @@ func NewApp(
 	http *httpserver.Server,
 	grpc *grpcserver.Server,
 	health *healthhandler.HealthHandler,
-	user *identityhandler.UserHandler,
+	auth *identityhandler.AuthHandler,
 ) *App {
 	r := http.Router()
 
 	health.Register(r)
-	user.Register(r)
+	auth.Register(r)
 
 	return &App{http: http, grpc: grpc}
 }

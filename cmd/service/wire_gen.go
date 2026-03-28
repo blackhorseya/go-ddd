@@ -24,11 +24,11 @@ func InitializeApp(cfg *config.Config) *App {
 	server := provideHTTPServer(cfg)
 	grpcServer := provideGRPCServer(cfg)
 	healthHandler := handler.NewHealthHandler()
-	repository := memory.NewUserRepository()
+	repository := memory.NewCredentialRepository()
 	idGenerator := idgen.NewUUIDGenerator()
-	registerUserUseCase := usecase.NewRegisterUserUseCase(repository, idGenerator)
-	userHandler := handler2.NewUserHandler(registerUserUseCase)
-	app := NewApp(server, grpcServer, healthHandler, userHandler)
+	registerUseCase := usecase.NewRegisterUseCase(repository, idGenerator)
+	authHandler := handler2.NewAuthHandler(registerUseCase)
+	app := NewApp(server, grpcServer, healthHandler, authHandler)
 	return app
 }
 

@@ -11,9 +11,9 @@ import (
 
 // ProviderSet collects all providers for the Identity bounded context.
 var ProviderSet = wire.NewSet(
-	memory.NewUserRepository,
+	memory.NewCredentialRepository,
 	idgen.NewUUIDGenerator,
-	usecase.NewRegisterUserUseCase,
-	usecase.NewGetUserUseCase,
-	handler.NewUserHandler,
+	usecase.NewRegisterUseCase,
+	usecase.NewGetCredentialUseCase,
+	handler.NewAuthHandler,
 )
