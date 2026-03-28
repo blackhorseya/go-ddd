@@ -500,3 +500,4 @@ bin
 result.json
 coverage.txt
 .task/
+.worktrees/
