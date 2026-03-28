@@ -42,6 +42,8 @@ var (
 	ErrAlreadySuspended = errors.New("user is already suspended")
 	ErrCannotActivate   = errors.New("only inactive users can be activated")
 	ErrCannotSuspend    = errors.New("only active users can be suspended")
+	ErrNotFound         = errors.New("user not found")
+	ErrEmailDuplicated  = errors.New("email already in use")
 )
 
 // User is the aggregate root for user identity.
