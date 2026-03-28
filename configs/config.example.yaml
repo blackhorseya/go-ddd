@@ -12,26 +12,22 @@ server:
     host: 0.0.0.0
     port: 9090
 
-database:
-  driver: postgres
-  host: localhost
-  port: 5432
-  user: postgres
-  password: ""
-  name: app
-  ssl_mode: disable
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: 5m
-
-redis:
-  host: localhost
-  port: 6379
-  password: ""
-  db: 0
-
 log:
   level: debug # debug, info, warn, error
   format: json # json, text
   output: stdout # stdout, stderr
   add_source: false # add source file:line to log
+
+# Identity bounded context
+identity:
+  database:
+    driver: postgres
+    host: localhost
+    port: 5432
+    user: postgres
+    password: ""
+    name: identity
+    ssl_mode: disable
+    max_open_conns: 25
+    max_idle_conns: 5
+    conn_max_lifetime: 5m

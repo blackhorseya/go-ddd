@@ -13,7 +13,7 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 )
 
-func provideHTTPServer(cfg *config.Config) *httpserver.Server {
+func provideHTTPServer(cfg *config.AppConfig) *httpserver.Server {
 	return httpserver.NewServer(httpserver.ServerConfig{
 		Host:         cfg.Server.HTTP.Host,
 		Port:         cfg.Server.HTTP.Port,
@@ -22,7 +22,7 @@ func provideHTTPServer(cfg *config.Config) *httpserver.Server {
 	}, cfg.App.Name)
 }
 
-func provideGRPCServer(cfg *config.Config) *grpcserver.Server {
+func provideGRPCServer(cfg *config.AppConfig) *grpcserver.Server {
 	return grpcserver.NewServer(grpcserver.ServerConfig{
 		Host: cfg.Server.GRPC.Host,
 		Port: cfg.Server.GRPC.Port,
@@ -30,7 +30,7 @@ func provideGRPCServer(cfg *config.Config) *grpcserver.Server {
 }
 
 // InitializeApp builds the application with all dependencies wired up.
-func InitializeApp(cfg *config.Config) *App {
+func InitializeApp(cfg *config.AppConfig) *App {
 	wire.Build(
 		provideHTTPServer,
 		provideGRPCServer,

@@ -20,7 +20,7 @@ import (
 // Injectors from wire.go:
 
 // InitializeApp builds the application with all dependencies wired up.
-func InitializeApp(cfg *config.Config) *App {
+func InitializeApp(cfg *config.AppConfig) *App {
 	server := provideHTTPServer(cfg)
 	grpcServer := provideGRPCServer(cfg)
 	healthHandler := handler.NewHealthHandler()
@@ -34,7 +34,7 @@ func InitializeApp(cfg *config.Config) *App {
 
 // wire.go:
 
-func provideHTTPServer(cfg *config.Config) *http.Server {
+func provideHTTPServer(cfg *config.AppConfig) *http.Server {
 	return http.NewServer(http.ServerConfig{
 		Host:         cfg.Server.HTTP.Host,
 		Port:         cfg.Server.HTTP.Port,
@@ -43,7 +43,7 @@ func provideHTTPServer(cfg *config.Config) *http.Server {
 	}, cfg.App.Name)
 }
 
-func provideGRPCServer(cfg *config.Config) *grpc.Server {
+func provideGRPCServer(cfg *config.AppConfig) *grpc.Server {
 	return grpc.NewServer(grpc.ServerConfig{
 		Host: cfg.Server.GRPC.Host,
 		Port: cfg.Server.GRPC.Port,
