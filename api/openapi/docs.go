@@ -15,6 +15,70 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/auth/register": {
+            "post": {
+                "description": "建立新的認證憑證",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register a new credential",
+                "parameters": [
+                    {
+                        "description": "Registration payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.RegisterInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.CredentialOutput"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "description": "檢查服務是否存活",
@@ -31,13 +95,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response"
+                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_adapter_http_handler.HealthStatus"
+                                            "$ref": "#/definitions/internal_shared_adapter_http_handler.HealthStatus"
                                         }
                                     }
                                 }
@@ -63,13 +127,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response"
+                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/internal_adapter_http_handler.HealthStatus"
+                                            "$ref": "#/definitions/internal_shared_adapter_http_handler.HealthStatus"
                                         }
                                     }
                                 }
@@ -81,7 +145,38 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_blackhorseya_go-ddd_internal_adapter_http_response.Error": {
+        "github_com_blackhorseya_go-ddd_internal_identity_application_dto.CredentialOutput": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_blackhorseya_go-ddd_internal_identity_application_dto.RegisterInput": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Error": {
             "type": "object",
             "properties": {
                 "code": {
@@ -90,7 +185,7 @@ const docTemplate = `{
                 "details": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.FieldError"
+                        "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.FieldError"
                     }
                 },
                 "message": {
@@ -98,7 +193,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_blackhorseya_go-ddd_internal_adapter_http_response.FieldError": {
+        "github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.FieldError": {
             "type": "object",
             "properties": {
                 "field": {
@@ -109,11 +204,11 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_blackhorseya_go-ddd_internal_adapter_http_response.Meta": {
+        "github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Meta": {
             "type": "object",
             "properties": {
                 "pagination": {
-                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Pagination"
+                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Pagination"
                 },
                 "timestamp": {
                     "type": "string"
@@ -123,7 +218,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_blackhorseya_go-ddd_internal_adapter_http_response.Pagination": {
+        "github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Pagination": {
             "type": "object",
             "properties": {
                 "page": {
@@ -140,22 +235,22 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_blackhorseya_go-ddd_internal_adapter_http_response.Response": {
+        "github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response": {
             "type": "object",
             "properties": {
                 "data": {},
                 "error": {
-                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Error"
+                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Error"
                 },
                 "meta": {
-                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_adapter_http_response.Meta"
+                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Meta"
                 },
                 "success": {
                     "type": "boolean"
                 }
             }
         },
-        "internal_adapter_http_handler.HealthStatus": {
+        "internal_shared_adapter_http_handler.HealthStatus": {
             "type": "object",
             "properties": {
                 "status": {
@@ -176,7 +271,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "1.2.0",
 	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
