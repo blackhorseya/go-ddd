@@ -6,14 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Go DDD 範本專案，實作 Clean Architecture 與 Domain-Driven Design 原則。
 
-## Architecture (Clean Architecture + DDD)
+## Architecture (BC-first + Clean Architecture + DDD)
 
-### 分層架構
+### 組織方式：Bounded Context First
+
+本專案以 **Bounded Context (BC)** 為第一層組織單位，每個 BC 內部再按 Clean Architecture 分層。
+跨 BC 共用的元件放在 `shared/`（Shared Kernel）。
+
+```text
+internal/
+├── shared/              # Shared Kernel（跨 BC 共用）
+│   ├── domain/          # 共用領域概念（event, valueobject, pagination）
+│   ├── adapter/         # 共用適配器（HTTP server, ACL 文件）
+│   └── infrastructure/  # 共用基礎設施（config, messaging）
+├── {bc_name}/           # 各 Bounded Context
+│   ├── domain/          # 該 BC 的領域層
+│   ├── application/     # 該 BC 的應用層
+│   ├── adapter/         # 該 BC 的適配器層
+│   └── infrastructure/  # 該 BC 的基礎設施層
+```
+
+### Clean Architecture 分層（每個 BC 內部）
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                        Adapter Layer                        │
-│                   (HTTP, gRPC, Consumer)                    │
+│              (HTTP handler, gRPC, Consumer, ACL)            │
 ├─────────────────────────────────────────────────────────────┤
 │                      Application Layer                      │
 │                  (Use Cases, DTOs, Ports)                   │
@@ -40,9 +58,8 @@ Go DDD 範本專案，實作 Clean Architecture 與 Domain-Driven Design 原則�
     - `repository.go` - Repository 介面
     - `service.go` - 領域服務（可選）
     - `event.go` - 領域事件（可選）
-  - `valueobject/` - 跨聚合共用的值物件
-  - `event/` - 跨聚合共用的事件定義
-- **依賴**: 無外部依賴
+  - `valueobject/` - BC 內部的值物件
+- **依賴**: 僅依賴 `shared/domain/`
 
 #### 2. Application Layer - 用例協調
 
@@ -58,66 +75,90 @@ Go DDD 範本專案，實作 Clean Architecture 與 Domain-Driven Design 原則�
 
 - **職責**: 處理外部請求，轉換為應用層可理解的格式
 - **元件**:
-  - `http/` - REST API（handler, middleware, router）
+  - `http/handler/` - REST API handler（註冊到 shared router）
   - `grpc/` - gRPC 服務
   - `consumer/` - 訊息佇列消費者
+  - `acl/{external_bc}/` - Anti-Corruption Layer（翻譯外部 BC 模型）
 - **依賴**: Domain Layer、Application Layer
 
 #### 4. Infrastructure Layer - 技術實作
 
 - **職責**: 提供技術基礎設施
 - **元件**:
-  - `config/` - 配置管理
   - `persistence/` - Repository 實作（postgres, redis）
-  - `messaging/` - 訊息佇列實作
   - `external/` - 外部服務客戶端（實作 port 介面）
-  - `logger/` - 日誌實作
 - **依賴**: 可依賴所有層（提供技術支援）
+
+### Shared Kernel
+
+`internal/shared/` 包含跨 BC 共用的元件：
+
+- **`shared/domain/event/`** - Domain Event 介面 (`DomainEvent`) 和基礎結構 (`BaseEvent`)、事件匯流排介面 (`EventBus`)
+- **`shared/domain/valueobject/`** - 跨 BC 共用的值物件
+- **`shared/domain/pagination.go`** - 分頁值物件
+- **`shared/adapter/http/`** - HTTP server、router、middleware、response 格式
+- **`shared/adapter/acl/`** - ACL pattern 文件與慣例
+- **`shared/infrastructure/config/`** - 配置管理
+- **`shared/infrastructure/messaging/`** - EventBus 實作（in-memory 等）
+
+### Domain Event 慣例
+
+- 事件類型命名: `"{aggregate}.{past_tense_verb}"`（如 `"order.created"`）
+- 具體事件嵌入 `event.BaseEvent`
+- EventBus 介面在 `shared/domain/event/bus.go`，實作在 `shared/infrastructure/messaging/`
+- BC 內部事件定義在 `{bc}/domain/{aggregate}/event.go`
+
+### Anti-Corruption Layer (ACL) 慣例
+
+ACL 用於翻譯外部 BC 的模型到本地領域模型，防止外部概念污染本地 BC：
+
+```text
+{bc}/application/port/{external}.go        ← 定義需要的介面
+{bc}/adapter/acl/{external_bc}/
+  translator.go                            ← 實作介面，翻譯模型
+  client.go                                ← 定義 client 介面
+{bc}/infrastructure/external/{service}/
+  client.go                                ← 實作 raw client
+```
 
 ## Project Structure
 
 ```text
 .
-├── cmd/                        # 應用程式進入點
+├── cmd/                                # 應用程式進入點
 │   └── service/
-├── internal/                   # 私有應用程式碼
-│   ├── domain/                 # 領域層（按聚合組織）
-│   │   ├── order/              # Order 聚合
-│   │   │   ├── order.go        # 聚合根
-│   │   │   ├── item.go         # 聚合內實體
-│   │   │   ├── repository.go   # Repository 介面
-│   │   │   └── service.go      # 領域服務
-│   │   ├── user/               # User 聚合
-│   │   │   ├── user.go
-│   │   │   └── repository.go
-│   │   ├── valueobject/        # 共用值物件
-│   │   │   ├── money.go
-│   │   │   └── address.go
-│   │   └── event/              # 共用領域事件
-│   ├── application/            # 應用層
-│   │   ├── usecase/            # 用例實作
-│   │   │   ├── create_order.go
-│   │   │   └── confirm_order.go
-│   │   ├── port/               # 外部服務介面
-│   │   ├── dto/                # 資料傳輸物件
-│   │   └── mapper/             # DTO ↔ Domain 映射
-│   ├── adapter/                # 適配器層
-│   │   ├── http/
-│   │   │   ├── handler/
-│   │   │   ├── middleware/
-│   │   │   └── router/
-│   │   ├── grpc/
-│   │   └── consumer/
-│   └── infrastructure/         # 基礎設施層
-│       ├── config/
-│       ├── persistence/
-│       │   ├── postgres/
-│       │   └── redis/
-│       ├── messaging/
-│       ├── external/           # 外部服務客戶端
-│       └── logger/
-├── pkg/                        # 公共可重用套件
-├── configs/                    # 配置檔案
+├── internal/                           # 私有應用程式碼
+│   ├── shared/                         # Shared Kernel（跨 BC 共用）
+│   │   ├── domain/
+│   │   │   ├── event/                  # DomainEvent, EventBus 介面
+│   │   │   ├── valueobject/            # 跨 BC 共用值物件
+│   │   │   └── pagination.go           # 分頁值物件
+│   │   ├── adapter/
+│   │   │   ├── http/                   # HTTP server, router, middleware
+│   │   │   └── acl/                    # ACL pattern 文件
+│   │   └── infrastructure/
+│   │       ├── config/                 # 配置管理
+│   │       └── messaging/inmemory/     # In-memory EventBus 實作
+│   └── {bc_name}/                      # 各 Bounded Context
+│       ├── domain/
+│       │   └── {aggregate}/
+│       │       ├── entity.go           # 聚合根與實體
+│       │       ├── repository.go       # Repository 介面
+│       │       ├── service.go          # 領域服務（可選）
+│       │       └── event.go            # 領域事件（可選）
+│       ├── application/
+│       │   ├── usecase/                # 用例實作
+│       │   ├── port/                   # 外部服務介面
+│       │   ├── dto/                    # 資料傳輸物件
+│       │   └── mapper/                 # DTO ↔ Domain 映射
+│       ├── adapter/
+│       │   ├── http/handler/           # REST API handler
+│       │   └── acl/{external_bc}/      # Anti-Corruption Layer
+│       └── infrastructure/
+│           ├── persistence/            # Repository 實作
+│           └── external/               # 外部服務客戶端
+├── pkg/                                # 公共可重用套件
+├── configs/                            # 配置檔案
 ├── tests/
 │   ├── integration/
 │   └── e2e/
@@ -191,7 +232,7 @@ task clean                  # 清理編譯產物
 ### Domain Entity 範例
 
 ```go
-// internal/domain/order/order.go
+// internal/order/domain/order/order.go
 package order
 
 type Order struct {
