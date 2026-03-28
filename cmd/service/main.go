@@ -16,11 +16,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
-	grpcserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
-	httpserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/blackhorseya/go-ddd/pkg/logx"
@@ -83,6 +80,9 @@ func main() {
 		"grpc_port", cfg.Server.GRPC.Port,
 	)
 
+	// Initialize application via Wire
+	app := InitializeApp(cfg)
+
 	// Setup signal handling
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
@@ -90,34 +90,10 @@ func main() {
 	// Create cancellable context for graceful shutdown
 	runCtx, cancel := context.WithCancel(ctx)
 
-	// Initialize HTTP server
-	server := httpserver.NewServer(httpserver.ServerConfig{
-		Host:         cfg.Server.HTTP.Host,
-		Port:         cfg.Server.HTTP.Port,
-		ReadTimeout:  cfg.Server.HTTP.ReadTimeout,
-		WriteTimeout: cfg.Server.HTTP.WriteTimeout,
-	}, cfg.App.Name)
-
-	// Initialize gRPC server
-	grpcSrv := grpcserver.NewServer(grpcserver.ServerConfig{
-		Host: cfg.Server.GRPC.Host,
-		Port: cfg.Server.GRPC.Port,
-	}, cfg.IsDevelopment())
-
-	// Start servers in goroutines
-	var wg sync.WaitGroup
-	errCh := make(chan error, 2)
-
-	wg.Add(2)
+	// Start application
+	errCh := make(chan error, 1)
 	go func() {
-		defer wg.Done()
-		if err := server.Run(runCtx); err != nil {
-			errCh <- err
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		if err := grpcSrv.Run(runCtx); err != nil {
+		if err := app.Run(runCtx); err != nil {
 			errCh <- err
 		}
 	}()
@@ -130,8 +106,6 @@ func main() {
 		ctx.Error("server error", "error", err)
 	}
 
-	// Trigger graceful shutdown and wait for servers to finish
 	cancel()
-	wg.Wait()
 	ctx.Info("service shutdown complete")
 }
