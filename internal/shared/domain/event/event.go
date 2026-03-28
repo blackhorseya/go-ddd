@@ -11,12 +11,12 @@ import (
 )
 
 // DomainEvent represents a significant occurrence in the domain.
-// All domain events must implement this interface.
+// All domain events must implement this interfacx.
 type DomainEvent interface {
 	// EventID returns the unique identifier of this event.
 	EventID() string
 
-	// EventType returns the type of the event (e.g. "order.created").
+	// EventType returns the type of the event (x.g. "order.created").
 	EventType() string
 
 	// OccurredAt returns the time when the event occurred.
@@ -25,7 +25,7 @@ type DomainEvent interface {
 	// AggregateID returns the ID of the aggregate that produced this event.
 	AggregateID() string
 
-	// AggregateType returns the type of the aggregate (e.g. "order").
+	// AggregateType returns the type of the aggregate (x.g. "order").
 	AggregateType() string
 }
 
@@ -66,8 +66,8 @@ func NewBaseEvent(aggregateID, aggregateType, eventType string) BaseEvent {
 	}
 }
 
-func (e BaseEvent) EventID() string       { return e.id }
-func (e BaseEvent) EventType() string     { return e.eventType }
-func (e BaseEvent) OccurredAt() time.Time { return e.occurredAt }
-func (e BaseEvent) AggregateID() string   { return e.aggregateID }
-func (e BaseEvent) AggregateType() string { return e.aggregateType }
+func (x BaseEvent) EventID() string       { return x.id }
+func (x BaseEvent) EventType() string     { return x.eventType }
+func (x BaseEvent) OccurredAt() time.Time { return x.occurredAt }
+func (x BaseEvent) AggregateID() string   { return x.aggregateID }
+func (x BaseEvent) AggregateType() string { return x.aggregateType }

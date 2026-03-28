@@ -45,9 +45,9 @@ func NewSortOption(field string, direction SortDirection) SortOption {
 	}
 }
 
-func (s SortOption) Field() string            { return s.field }
-func (s SortOption) Direction() SortDirection { return s.direction }
-func (s SortOption) IsAscending() bool        { return s.direction == SortAsc }
+func (x SortOption) Field() string            { return x.field }
+func (x SortOption) Direction() SortDirection { return x.direction }
+func (x SortOption) IsAscending() bool        { return x.direction == SortAsc }
 
 // ============================================================================
 // Offset-based Pagination (傳統頁碼分頁)
@@ -83,20 +83,20 @@ func NewPageRequestWithDefaults() PageRequest {
 }
 
 // WithSort returns a new PageRequest with sort options
-func (p PageRequest) WithSort(sort ...SortOption) PageRequest {
+func (x PageRequest) WithSort(sort ...SortOption) PageRequest {
 	return PageRequest{
-		page:     p.page,
-		pageSize: p.pageSize,
+		page:     x.page,
+		pageSize: x.pageSize,
 		sort:     sort,
 	}
 }
 
 // Getters
-func (p PageRequest) Page() int          { return p.page }
-func (p PageRequest) PageSize() int      { return p.pageSize }
-func (p PageRequest) Sort() []SortOption { return p.sort }
-func (p PageRequest) Offset() int        { return (p.page - 1) * p.pageSize }
-func (p PageRequest) Limit() int         { return p.pageSize }
+func (x PageRequest) Page() int          { return x.page }
+func (x PageRequest) PageSize() int      { return x.pageSize }
+func (x PageRequest) Sort() []SortOption { return x.sort }
+func (x PageRequest) Offset() int        { return (x.page - 1) * x.pageSize }
+func (x PageRequest) Limit() int         { return x.pageSize }
 
 // PageResult represents a paginated result with metadata
 type PageResult[T any] struct {
@@ -123,14 +123,14 @@ func NewPageResult[T any](items []T, page, pageSize int, totalItems int64) PageR
 }
 
 // Getters
-func (r PageResult[T]) Items() []T        { return r.items }
-func (r PageResult[T]) Page() int         { return r.page }
-func (r PageResult[T]) PageSize() int     { return r.pageSize }
-func (r PageResult[T]) TotalItems() int64 { return r.totalItems }
-func (r PageResult[T]) TotalPages() int   { return r.totalPages }
-func (r PageResult[T]) HasNext() bool     { return r.page < r.totalPages }
-func (r PageResult[T]) HasPrev() bool     { return r.page > 1 }
-func (r PageResult[T]) IsEmpty() bool     { return len(r.items) == 0 }
+func (x PageResult[T]) Items() []T        { return x.items }
+func (x PageResult[T]) Page() int         { return x.page }
+func (x PageResult[T]) PageSize() int     { return x.pageSize }
+func (x PageResult[T]) TotalItems() int64 { return x.totalItems }
+func (x PageResult[T]) TotalPages() int   { return x.totalPages }
+func (x PageResult[T]) HasNext() bool     { return x.page < x.totalPages }
+func (x PageResult[T]) HasPrev() bool     { return x.page > 1 }
+func (x PageResult[T]) IsEmpty() bool     { return len(x.items) == 0 }
 
 // EmptyPageResult creates an empty page result
 func EmptyPageResult[T any]() PageResult[T] {
@@ -174,20 +174,20 @@ func NewCursorRequestWithDefaults() CursorRequest {
 }
 
 // WithSort returns a new CursorRequest with sort options
-func (c CursorRequest) WithSort(sort ...SortOption) CursorRequest {
+func (x CursorRequest) WithSort(sort ...SortOption) CursorRequest {
 	return CursorRequest{
-		cursor:   c.cursor,
-		pageSize: c.pageSize,
+		cursor:   x.cursor,
+		pageSize: x.pageSize,
 		sort:     sort,
 	}
 }
 
 // Getters
-func (c CursorRequest) Cursor() string     { return c.cursor }
-func (c CursorRequest) PageSize() int      { return c.pageSize }
-func (c CursorRequest) Sort() []SortOption { return c.sort }
-func (c CursorRequest) Limit() int         { return c.pageSize }
-func (c CursorRequest) HasCursor() bool    { return c.cursor != "" }
+func (x CursorRequest) Cursor() string     { return x.cursor }
+func (x CursorRequest) PageSize() int      { return x.pageSize }
+func (x CursorRequest) Sort() []SortOption { return x.sort }
+func (x CursorRequest) Limit() int         { return x.pageSize }
+func (x CursorRequest) HasCursor() bool    { return x.cursor != "" }
 
 // CursorResult represents a cursor-based paginated result
 type CursorResult[T any] struct {
@@ -208,11 +208,11 @@ func NewCursorResult[T any](items []T, nextCursor, prevCursor string, hasMore bo
 }
 
 // Getters
-func (r CursorResult[T]) Items() []T         { return r.items }
-func (r CursorResult[T]) NextCursor() string { return r.nextCursor }
-func (r CursorResult[T]) PrevCursor() string { return r.prevCursor }
-func (r CursorResult[T]) HasMore() bool      { return r.hasMore }
-func (r CursorResult[T]) IsEmpty() bool      { return len(r.items) == 0 }
+func (x CursorResult[T]) Items() []T         { return x.items }
+func (x CursorResult[T]) NextCursor() string { return x.nextCursor }
+func (x CursorResult[T]) PrevCursor() string { return x.prevCursor }
+func (x CursorResult[T]) HasMore() bool      { return x.hasMore }
+func (x CursorResult[T]) IsEmpty() bool      { return len(x.items) == 0 }
 
 // EmptyCursorResult creates an empty cursor result
 func EmptyCursorResult[T any]() CursorResult[T] {
@@ -228,7 +228,7 @@ func EmptyCursorResult[T any]() CursorResult[T] {
 // Cursor Encoding (Base64)
 // ============================================================================
 
-// cursorSeparator is used to join multiple values in a cursor.
+// cursorSeparator is used to join multiple values in a cursox.
 // Using null byte as it won't appear in normal string values.
 const cursorSeparator = "\x00"
 

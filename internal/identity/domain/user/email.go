@@ -28,13 +28,13 @@ func NewEmail(address string) (Email, error) {
 }
 
 // Address returns the normalized email address.
-func (e Email) Address() string { return e.address }
+func (x Email) Address() string { return x.address }
 
 // String implements fmt.Stringer.
-func (e Email) String() string { return e.address }
+func (x Email) String() string { return x.address }
 
 // Equals checks if two emails are the same.
-func (e Email) Equals(other Email) bool { return e.address == other.address }
+func (x Email) Equals(other Email) bool { return x.address == other.address }
 
 // IsZero returns true if the email is uninitialized.
-func (e Email) IsZero() bool { return e.address == "" }
+func (x Email) IsZero() bool { return x.address == "" }

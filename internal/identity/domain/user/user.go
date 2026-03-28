@@ -48,6 +48,7 @@ var (
 type User struct {
 	id        string
 	email     Email
+	password  HashedPassword
 	name      string
 	status    Status
 	createdAt time.Time
@@ -55,14 +56,18 @@ type User struct {
 }
 
 // NewUser creates a new User in inactive status.
-// The caller must provide a pre-generated ID, a validated Email, and a non-empty name.
-func NewUser(id string, email Email, name string) (*User, error) {
+// The caller must provide a pre-generated ID, a validated Email, a HashedPassword, and a non-empty name.
+func NewUser(id string, email Email, password HashedPassword, name string) (*User, error) {
 	if id == "" {
 		return nil, ErrEmptyID
 	}
 
 	if email.IsZero() {
 		return nil, ErrEmailRequired
+	}
+
+	if password.IsZero() {
+		return nil, ErrPasswordRequired
 	}
 
 	if name == "" {
@@ -78,6 +83,7 @@ func NewUser(id string, email Email, name string) (*User, error) {
 	return &User{
 		id:        id,
 		email:     email,
+		password:  password,
 		name:      name,
 		status:    StatusInactive,
 		createdAt: now,
@@ -86,39 +92,39 @@ func NewUser(id string, email Email, name string) (*User, error) {
 }
 
 // Activate transitions the user from inactive to active.
-func (u *User) Activate() error {
-	if u.status == StatusActive {
+func (x *User) Activate() error {
+	if x.status == StatusActive {
 		return ErrAlreadyActive
 	}
 
-	if u.status != StatusInactive {
+	if x.status != StatusInactive {
 		return ErrCannotActivate
 	}
 
-	u.status = StatusActive
-	u.updatedAt = time.Now()
+	x.status = StatusActive
+	x.updatedAt = time.Now()
 
 	return nil
 }
 
 // Suspend transitions the user from active to suspended.
-func (u *User) Suspend() error {
-	if u.status == StatusSuspended {
+func (x *User) Suspend() error {
+	if x.status == StatusSuspended {
 		return ErrAlreadySuspended
 	}
 
-	if u.status != StatusActive {
+	if x.status != StatusActive {
 		return ErrCannotSuspend
 	}
 
-	u.status = StatusSuspended
-	u.updatedAt = time.Now()
+	x.status = StatusSuspended
+	x.updatedAt = time.Now()
 
 	return nil
 }
 
 // UpdateName changes the user's display name.
-func (u *User) UpdateName(name string) error {
+func (x *User) UpdateName(name string) error {
 	if name == "" {
 		return ErrEmptyName
 	}
@@ -127,41 +133,51 @@ func (u *User) UpdateName(name string) error {
 		return ErrNameTooLong
 	}
 
-	u.name = name
-	u.updatedAt = time.Now()
+	x.name = name
+	x.updatedAt = time.Now()
 
 	return nil
 }
 
+// ChangePassword replaces the user's password.
+// The HashedPassword value object is already validated by its constructor.
+func (x *User) ChangePassword(password HashedPassword) {
+	x.password = password
+	x.updatedAt = time.Now()
+}
+
 // UpdateEmail changes the user's email address.
 // The Email value object is already validated by its constructor.
-func (u *User) UpdateEmail(email Email) {
-	u.email = email
-	u.updatedAt = time.Now()
+func (x *User) UpdateEmail(email Email) {
+	x.email = email
+	x.updatedAt = time.Now()
 }
 
 // Getters
 
 // ID returns the user's unique identifier.
-func (u *User) ID() string { return u.id }
+func (x *User) ID() string { return x.id }
 
 // Email returns the user's email address.
-func (u *User) Email() Email { return u.email }
+func (x *User) Email() Email { return x.email }
+
+// Password returns the user's hashed password.
+func (x *User) Password() HashedPassword { return x.password }
 
 // Name returns the user's display name.
-func (u *User) Name() string { return u.name }
+func (x *User) Name() string { return x.name }
 
 // Status returns the user's current lifecycle status.
-func (u *User) Status() Status { return u.status }
+func (x *User) Status() Status { return x.status }
 
 // CreatedAt returns the time the user was created.
-func (u *User) CreatedAt() time.Time { return u.createdAt }
+func (x *User) CreatedAt() time.Time { return x.createdAt }
 
 // UpdatedAt returns the time the user was last modified.
-func (u *User) UpdatedAt() time.Time { return u.updatedAt }
+func (x *User) UpdatedAt() time.Time { return x.updatedAt }
 
 // IsActive returns true if the user is in active status.
-func (u *User) IsActive() bool { return u.status == StatusActive }
+func (x *User) IsActive() bool { return x.status == StatusActive }
 
 // IsSuspended returns true if the user is in suspended status.
-func (u *User) IsSuspended() bool { return u.status == StatusSuspended }
+func (x *User) IsSuspended() bool { return x.status == StatusSuspended }
