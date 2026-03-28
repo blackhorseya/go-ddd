@@ -14,6 +14,5 @@ var ProviderSet = wire.NewSet(
 	memory.NewCredentialRepository,
 	idgen.NewUUIDGenerator,
 	usecase.NewRegisterUseCase,
-	usecase.NewGetCredentialUseCase,
 	handler.NewAuthHandler,
 )
