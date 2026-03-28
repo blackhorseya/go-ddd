@@ -8,7 +8,8 @@
 //
 // Status transitions:
 //
-//	inactive ──► active ──► suspended
+//	[NewCredential] ──► active ──► suspended
+//	[Reconstitute]  ──► inactive ──► active ──► suspended
 package credential
 
 import (
@@ -60,7 +61,7 @@ type NewCredentialParams struct {
 	Password HashedPassword
 }
 
-// NewCredential creates a new Credential in inactive status.
+// NewCredential creates a new Credential in active status.
 func NewCredential(params NewCredentialParams) (*Credential, error) {
 	if params.ID == "" {
 		return nil, ErrEmptyID

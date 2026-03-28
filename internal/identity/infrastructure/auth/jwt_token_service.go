@@ -53,6 +53,10 @@ func NewJWTTokenService(cfg JWTConfig) port.TokenService {
 		cfg.RefreshTokenTTL = 7 * 24 * time.Hour
 	}
 
+	if cfg.Secret == "" {
+		panic("jwt: secret must not be empty")
+	}
+
 	return &JWTTokenService{cfg: cfg}
 }
 
@@ -108,7 +112,7 @@ func (s *JWTTokenService) signToken(claims customClaims) (string, error) {
 
 func (s *JWTTokenService) validateToken(raw string, expectedType tokenType) (port.TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(raw, &customClaims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+		if t.Method.Alg() != jwt.SigningMethodHS256.Alg() {
 			return nil, errInvalidToken
 		}
 		return []byte(s.cfg.Secret), nil

@@ -28,10 +28,7 @@ func InitializeApp(cfg *config.AppConfig) (*App, error) {
 	healthHandler := handler.NewHealthHandler()
 	repository := memory.NewCredentialRepository()
 	idGenerator := idgen.NewUUIDGenerator()
-	bus, err := watermill.NewBus()
-	if err != nil {
-		return nil, err
-	}
+	bus := watermill.NewBus()
 	registerUseCase := usecase.NewRegisterUseCase(repository, idGenerator, bus)
 	jwtConfig := provideJWTConfig(cfg)
 	tokenService := auth.NewJWTTokenService(jwtConfig)

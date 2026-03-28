@@ -135,7 +135,8 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, usecase.ErrInvalidCredentials),
-			errors.Is(err, credential.ErrCredentialSuspended):
+			errors.Is(err, credential.ErrCredentialSuspended),
+			errors.Is(err, credential.ErrNotFound):
 			response.Unauthorized(c, "invalid or expired refresh token")
 		default:
 			response.InternalError(c, "failed to refresh token")

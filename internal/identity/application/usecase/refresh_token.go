@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/blackhorseya/go-ddd/internal/identity/application/dto"
@@ -35,7 +36,11 @@ func (uc *RefreshTokenUseCase) Execute(c context.Context, input dto.RefreshInput
 
 	cred, err := uc.repo.FindByID(ctx, claims.CredentialID)
 	if err != nil {
-		ctx.Warn("refresh failed: credential not found", "credential_id", claims.CredentialID, "error", err)
+		if errors.Is(err, credential.ErrNotFound) {
+			ctx.Warn("refresh failed: credential not found", "credential_id", claims.CredentialID)
+			return dto.AuthOutput{}, ErrInvalidCredentials
+		}
+		ctx.Error("refresh failed: find credential", "credential_id", claims.CredentialID, "error", err)
 		return dto.AuthOutput{}, fmt.Errorf("find credential: %w", err)
 	}
 

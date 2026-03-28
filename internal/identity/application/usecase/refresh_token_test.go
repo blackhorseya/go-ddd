@@ -57,7 +57,7 @@ func TestRefreshTokenUseCase_Execute(t *testing.T) {
 					Return(port.TokenClaims{CredentialID: "c-1"}, nil)
 				repo.EXPECT().FindByID(gomock.Any(), "c-1").Return(nil, credential.ErrNotFound)
 			},
-			wantErr: credential.ErrNotFound,
+			wantErr: ErrInvalidCredentials,
 		},
 		{
 			name:  "suspended credential",

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/blackhorseya/go-ddd/internal/identity/application/dto"
@@ -45,6 +46,9 @@ func (uc *RegisterUseCase) Execute(c context.Context, input dto.RegisterInput) (
 	if _, err := uc.repo.FindByEmail(ctx, email); err == nil {
 		ctx.Warn("register failed: email already in use", "email", input.Email)
 		return dto.CredentialOutput{}, credential.ErrEmailDuplicated
+	} else if !errors.Is(err, credential.ErrNotFound) {
+		ctx.Error("register failed: check email", "error", err)
+		return dto.CredentialOutput{}, fmt.Errorf("check email: %w", err)
 	}
 
 	cred, err := credential.NewCredential(credential.NewCredentialParams{
