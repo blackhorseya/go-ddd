@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/handler"
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/router"
+	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/handler"
+	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/router"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 

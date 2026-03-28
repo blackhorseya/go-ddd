@@ -18,8 +18,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	httpserver "github.com/blackhorseya/go-ddd/internal/adapter/http"
-	"github.com/blackhorseya/go-ddd/internal/infrastructure/config"
+	httpserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
+	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 	"github.com/blackhorseya/go-ddd/pkg/logx"
 	"github.com/blackhorseya/go-ddd/pkg/otelx"
