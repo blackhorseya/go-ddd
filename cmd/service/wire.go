@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 
 	"github.com/blackhorseya/go-ddd/internal/identity"
+	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/auth"
 	"github.com/blackhorseya/go-ddd/internal/shared"
 	grpcserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
 	httpserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
@@ -22,6 +23,14 @@ func provideHTTPServer(cfg *config.AppConfig) *httpserver.Server {
 	}, cfg.App.Name)
 }
 
+func provideJWTConfig(cfg *config.AppConfig) auth.JWTConfig {
+	return auth.JWTConfig{
+		Secret:          cfg.Auth.JWT.Secret,
+		AccessTokenTTL:  cfg.Auth.JWT.AccessTokenTTL,
+		RefreshTokenTTL: cfg.Auth.JWT.RefreshTokenTTL,
+	}
+}
+
 func provideGRPCServer(cfg *config.AppConfig) *grpcserver.Server {
 	return grpcserver.NewServer(grpcserver.ServerConfig{
 		Host: cfg.Server.GRPC.Host,
@@ -30,13 +39,14 @@ func provideGRPCServer(cfg *config.AppConfig) *grpcserver.Server {
 }
 
 // InitializeApp builds the application with all dependencies wired up.
-func InitializeApp(cfg *config.AppConfig) *App {
+func InitializeApp(cfg *config.AppConfig) (*App, error) {
 	wire.Build(
 		provideHTTPServer,
 		provideGRPCServer,
+		provideJWTConfig,
 		identity.ProviderSet,
 		shared.ProviderSet,
 		NewApp,
 	)
-	return nil
+	return nil, nil
 }
