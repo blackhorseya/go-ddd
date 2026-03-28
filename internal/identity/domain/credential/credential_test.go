@@ -27,8 +27,20 @@ func activeCredential(t *testing.T) *Credential {
 		t.Fatalf("failed to create credential: %v", err)
 	}
 
-	if err := c.Activate(); err != nil {
-		t.Fatalf("failed to activate credential: %v", err)
+	return c
+}
+
+func inactiveCredential(t *testing.T) *Credential {
+	t.Helper()
+
+	c, err := ReconstituteCredential(ReconstituteCredentialParams{
+		ID:       "c-1",
+		Email:    validEmail(),
+		Password: validPassword(),
+		Status:   StatusInactive,
+	})
+	if err != nil {
+		t.Fatalf("failed to reconstitute credential: %v", err)
 	}
 
 	return c
@@ -65,8 +77,8 @@ func TestNewCredential(t *testing.T) {
 				t.Errorf("ID() = %q, want %q", c.ID(), tt.params.ID)
 			}
 
-			if c.Status() != StatusInactive {
-				t.Errorf("Status() = %q, want %q", c.Status(), StatusInactive)
+			if c.Status() != StatusActive {
+				t.Errorf("Status() = %q, want %q", c.Status(), StatusActive)
 			}
 
 			if c.CreatedAt().IsZero() {
@@ -112,12 +124,8 @@ func TestCredential_Activate(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "from inactive",
-			setup: func(t *testing.T) *Credential {
-				t.Helper()
-				c, _ := NewCredential(NewCredentialParams{ID: "c-1", Email: validEmail(), Password: validPassword()})
-				return c
-			},
+			name:  "from inactive",
+			setup: func(t *testing.T) *Credential { t.Helper(); return inactiveCredential(t) },
 		},
 		{
 			name:    "already active",
@@ -180,12 +188,8 @@ func TestCredential_Suspend(t *testing.T) {
 			wantErr: ErrAlreadySuspended,
 		},
 		{
-			name: "from inactive",
-			setup: func(t *testing.T) *Credential {
-				t.Helper()
-				c, _ := NewCredential(NewCredentialParams{ID: "c-1", Email: validEmail(), Password: validPassword()})
-				return c
-			},
+			name:    "from inactive",
+			setup:   func(t *testing.T) *Credential { t.Helper(); return inactiveCredential(t) },
 			wantErr: ErrCannotSuspend,
 		},
 	}

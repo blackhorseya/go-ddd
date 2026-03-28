@@ -15,6 +15,134 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "description": "使用 email 和密碼登入，回傳 JWT token pair",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Authenticate a credential",
+                "parameters": [
+                    {
+                        "description": "Login payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.LoginInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.AuthOutput"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "description": "使用 refresh token 取得新的 token pair",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Refresh token pair",
+                "parameters": [
+                    {
+                        "description": "Refresh payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.RefreshInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.AuthOutput"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_shared_adapter_http_response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/register": {
             "post": {
                 "description": "建立新的認證憑證",
@@ -145,6 +273,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_blackhorseya_go-ddd_internal_identity_application_dto.AuthOutput": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "credential": {
+                    "$ref": "#/definitions/github_com_blackhorseya_go-ddd_internal_identity_application_dto.CredentialOutput"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_blackhorseya_go-ddd_internal_identity_application_dto.CredentialOutput": {
             "type": "object",
             "properties": {
@@ -161,6 +306,25 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_blackhorseya_go-ddd_internal_identity_application_dto.LoginInput": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_blackhorseya_go-ddd_internal_identity_application_dto.RefreshInput": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {
                     "type": "string"
                 }
             }

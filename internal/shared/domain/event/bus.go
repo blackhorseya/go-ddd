@@ -1,5 +1,7 @@
 package event
 
+//go:generate go tool mockgen -destination=mock_bus.go -package=${GOPACKAGE} -source=bus.go
+
 import "context"
 
 // EventHandler is a function that processes a domain event.

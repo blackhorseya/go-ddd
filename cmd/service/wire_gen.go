@@ -9,27 +9,34 @@ package main
 import (
 	handler2 "github.com/blackhorseya/go-ddd/internal/identity/adapter/http/handler"
 	"github.com/blackhorseya/go-ddd/internal/identity/application/usecase"
+	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/auth"
 	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/idgen"
 	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/persistence/memory"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/handler"
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
+	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/messaging/watermill"
 )
 
 // Injectors from wire.go:
 
 // InitializeApp builds the application with all dependencies wired up.
-func InitializeApp(cfg *config.AppConfig) *App {
+func InitializeApp(cfg *config.AppConfig) (*App, error) {
 	server := provideHTTPServer(cfg)
 	grpcServer := provideGRPCServer(cfg)
 	healthHandler := handler.NewHealthHandler()
 	repository := memory.NewCredentialRepository()
 	idGenerator := idgen.NewUUIDGenerator()
-	registerUseCase := usecase.NewRegisterUseCase(repository, idGenerator)
-	authHandler := handler2.NewAuthHandler(registerUseCase)
+	bus := watermill.NewBus()
+	registerUseCase := usecase.NewRegisterUseCase(repository, idGenerator, bus)
+	jwtConfig := provideJWTConfig(cfg)
+	tokenService := auth.NewJWTTokenService(jwtConfig)
+	loginUseCase := usecase.NewLoginUseCase(repository, tokenService)
+	refreshTokenUseCase := usecase.NewRefreshTokenUseCase(repository, tokenService)
+	authHandler := handler2.NewAuthHandler(registerUseCase, loginUseCase, refreshTokenUseCase)
 	app := NewApp(server, grpcServer, healthHandler, authHandler)
-	return app
+	return app, nil
 }
 
 // wire.go:
@@ -41,6 +48,14 @@ func provideHTTPServer(cfg *config.AppConfig) *http.Server {
 		ReadTimeout:  cfg.Server.HTTP.ReadTimeout,
 		WriteTimeout: cfg.Server.HTTP.WriteTimeout,
 	}, cfg.App.Name)
+}
+
+func provideJWTConfig(cfg *config.AppConfig) auth.JWTConfig {
+	return auth.JWTConfig{
+		Secret:          cfg.Auth.JWT.Secret,
+		AccessTokenTTL:  cfg.Auth.JWT.AccessTokenTTL,
+		RefreshTokenTTL: cfg.Auth.JWT.RefreshTokenTTL,
+	}
 }
 
 func provideGRPCServer(cfg *config.AppConfig) *grpc.Server {

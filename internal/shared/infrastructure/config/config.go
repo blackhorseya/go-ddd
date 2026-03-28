@@ -9,8 +9,21 @@ import (
 type AppConfig struct {
 	App      App            `mapstructure:"app"`
 	Server   Server         `mapstructure:"server"`
+	Auth     Auth           `mapstructure:"auth"`
 	Log      LogConfig      `mapstructure:"log"`
 	Identity IdentityConfig `mapstructure:"identity"`
+}
+
+// Auth contains authentication configuration.
+type Auth struct {
+	JWT JWT `mapstructure:"jwt"`
+}
+
+// JWT contains JWT token configuration.
+type JWT struct {
+	Secret          string        `mapstructure:"secret"`
+	AccessTokenTTL  time.Duration `mapstructure:"access_token_ttl"`
+	RefreshTokenTTL time.Duration `mapstructure:"refresh_token_ttl"`
 }
 
 // IdentityConfig holds configuration for the Identity bounded context.
