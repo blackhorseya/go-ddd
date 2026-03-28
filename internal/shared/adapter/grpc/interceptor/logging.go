@@ -57,7 +57,7 @@ func UnaryClientLogging() ggrpc.UnaryClientInterceptor {
 	}
 }
 
-// StreamClientLogging returns a client-side stream interceptor that logs each RPC call.
+// StreamClientLogging returns a client-side stream interceptor that logs stream lifecycle.
 func StreamClientLogging() ggrpc.StreamClientInterceptor {
 	return func(
 		ctx context.Context,
@@ -69,9 +69,28 @@ func StreamClientLogging() ggrpc.StreamClientInterceptor {
 	) (ggrpc.ClientStream, error) {
 		start := time.Now()
 		cs, err := streamer(ctx, desc, cc, method, opts...)
-		logRPC(ctx, "client", method, time.Since(start), err)
-		return cs, err
+		if err != nil {
+			logRPC(ctx, "client", method, time.Since(start), err)
+			return nil, err
+		}
+		return &loggingClientStream{ClientStream: cs, ctx: ctx, method: method, start: start}, nil
 	}
+}
+
+// loggingClientStream wraps grpc.ClientStream to log when the stream finishes.
+type loggingClientStream struct {
+	ggrpc.ClientStream
+	ctx    context.Context
+	method string
+	start  time.Time
+}
+
+func (s *loggingClientStream) RecvMsg(m any) error {
+	err := s.ClientStream.RecvMsg(m)
+	if err != nil {
+		logRPC(s.ctx, "client", s.method, time.Since(s.start), err)
+	}
+	return err
 }
 
 func logRPC(ctx context.Context, kind, method string, latency time.Duration, err error) {

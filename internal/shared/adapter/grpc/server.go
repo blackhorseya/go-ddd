@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	ggrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -14,16 +15,19 @@ import (
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 
+const defaultShutdownTimeout = 10 * time.Second
+
 // Server wraps the gRPC server with graceful shutdown support.
 type Server struct {
-	server *ggrpc.Server
-	addr   string
-	health *health.Server
+	server          *ggrpc.Server
+	addr            string
+	health          *health.Server
+	shutdownTimeout time.Duration
 }
 
 // NewServer creates a new gRPC server with tracing, logging interceptors,
 // health check service, and optional reflection (for development).
-func NewServer(cfg ServerConfig, serviceName string, isDev bool) *Server {
+func NewServer(cfg ServerConfig, isDev bool) *Server {
 	s := ggrpc.NewServer(
 		ggrpc.StatsHandler(interceptor.NewServerTracingHandler()),
 		ggrpc.ChainUnaryInterceptor(
@@ -44,10 +48,16 @@ func NewServer(cfg ServerConfig, serviceName string, isDev bool) *Server {
 		reflection.Register(s)
 	}
 
+	shutdownTimeout := cfg.ShutdownTimeout
+	if shutdownTimeout == 0 {
+		shutdownTimeout = defaultShutdownTimeout
+	}
+
 	return &Server{
-		server: s,
-		addr:   fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
-		health: hs,
+		server:          s,
+		addr:            fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+		health:          hs,
+		shutdownTimeout: shutdownTimeout,
 	}
 }
 
@@ -80,8 +90,22 @@ func (s *Server) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		contextx.From(ctx).Info("shutting down gRPC server")
 		s.health.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
-		s.server.GracefulStop()
-		return nil
+
+		// GracefulStop with timeout fallback to prevent indefinite blocking.
+		done := make(chan struct{})
+		go func() {
+			s.server.GracefulStop()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			return nil
+		case <-time.After(s.shutdownTimeout):
+			contextx.From(ctx).Warn("graceful stop timed out, forcing stop")
+			s.server.Stop()
+			return nil
+		}
 	}
 }
 

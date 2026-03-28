@@ -1,9 +1,8 @@
 package grpc
 
 import (
-	"time"
-
 	ggrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc/interceptor"
@@ -27,12 +26,18 @@ const defaultServiceConfig = `{
 
 // NewClientConn creates a gRPC client connection with tracing, logging interceptors,
 // retry policy, and health check support.
+// The connection is lazy; actual TCP dial happens on the first RPC call.
+// Use per-RPC context deadlines to control timeouts.
 func NewClientConn(cfg ClientConfig) (*ggrpc.ClientConn, error) {
-	if cfg.Timeout == 0 {
-		cfg.Timeout = 5 * time.Second
+	var creds ggrpc.DialOption
+	if cfg.Insecure {
+		creds = ggrpc.WithTransportCredentials(insecure.NewCredentials())
+	} else {
+		creds = ggrpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
 	}
 
-	opts := []ggrpc.DialOption{
+	return ggrpc.NewClient(cfg.Target,
+		creds,
 		ggrpc.WithDefaultServiceConfig(defaultServiceConfig),
 		ggrpc.WithDefaultCallOptions(ggrpc.WaitForReady(true)),
 		ggrpc.WithStatsHandler(interceptor.NewClientTracingHandler()),
@@ -42,11 +47,5 @@ func NewClientConn(cfg ClientConfig) (*ggrpc.ClientConn, error) {
 		ggrpc.WithChainStreamInterceptor(
 			interceptor.StreamClientLogging(),
 		),
-	}
-
-	if cfg.Insecure {
-		opts = append(opts, ggrpc.WithTransportCredentials(insecure.NewCredentials()))
-	}
-
-	return ggrpc.NewClient(cfg.Target, opts...)
+	)
 }
