@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/response"
+	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/response"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
 )
 

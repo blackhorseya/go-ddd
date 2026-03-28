@@ -6,7 +6,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/blackhorseya/go-ddd/internal/adapter/http/middleware"
+	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/middleware"
 
 	_ "github.com/blackhorseya/go-ddd/api/openapi" // swagger docs
 )
