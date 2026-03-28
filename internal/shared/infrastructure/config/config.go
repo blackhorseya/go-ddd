@@ -4,13 +4,32 @@ import (
 	"time"
 )
 
-// Config holds all configuration for the service.
-type Config struct {
-	App      App       `mapstructure:"app"`
-	Server   Server    `mapstructure:"server"`
-	Database Database  `mapstructure:"database"`
-	Redis    Redis     `mapstructure:"redis"`
-	Log      LogConfig `mapstructure:"log"`
+// AppConfig holds all configuration for the service.
+// This is the single load-time aggregate — only cmd/service/ should import this package.
+type AppConfig struct {
+	App      App            `mapstructure:"app"`
+	Server   Server         `mapstructure:"server"`
+	Log      LogConfig      `mapstructure:"log"`
+	Identity IdentityConfig `mapstructure:"identity"`
+}
+
+// IdentityConfig holds configuration for the Identity bounded context.
+type IdentityConfig struct {
+	Database IdentityDatabase `mapstructure:"database"`
+}
+
+// IdentityDatabase holds database configuration specific to the Identity BC.
+type IdentityDatabase struct {
+	Driver          string        `mapstructure:"driver"`
+	Host            string        `mapstructure:"host"`
+	Port            int           `mapstructure:"port"`
+	User            string        `mapstructure:"user"`
+	Password        string        `mapstructure:"password"`
+	Name            string        `mapstructure:"name"`
+	SSLMode         string        `mapstructure:"ssl_mode"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
 // LogConfig contains logging configuration.
@@ -48,34 +67,12 @@ type GRPC struct {
 	Port int    `mapstructure:"port"`
 }
 
-// Database contains database configuration.
-type Database struct {
-	Driver          string        `mapstructure:"driver"` // postgres, mysql
-	Host            string        `mapstructure:"host"`
-	Port            int           `mapstructure:"port"`
-	User            string        `mapstructure:"user"`
-	Password        string        `mapstructure:"password"`
-	Name            string        `mapstructure:"name"`
-	SSLMode         string        `mapstructure:"ssl_mode"`
-	MaxOpenConns    int           `mapstructure:"max_open_conns"`
-	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
-	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
-}
-
-// Redis contains Redis configuration.
-type Redis struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-}
-
 // IsDevelopment returns true if running in development environment.
-func (c *Config) IsDevelopment() bool {
+func (c *AppConfig) IsDevelopment() bool {
 	return c.App.Env == "development"
 }
 
 // IsProduction returns true if running in production environment.
-func (c *Config) IsProduction() bool {
+func (c *AppConfig) IsProduction() bool {
 	return c.App.Env == "production"
 }

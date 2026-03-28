@@ -9,7 +9,7 @@ import (
 )
 
 // Load reads configuration from file and environment variables.
-func Load(path string) (*Config, error) {
+func Load(path string) (*AppConfig, error) {
 	v := viper.New()
 
 	// Set defaults
@@ -28,7 +28,7 @@ func Load(path string) (*Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	var cfg Config
+	var cfg AppConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
@@ -37,7 +37,7 @@ func Load(path string) (*Config, error) {
 }
 
 // MustLoad loads configuration and panics on error.
-func MustLoad(path string) *Config {
+func MustLoad(path string) *AppConfig {
 	cfg, err := Load(path)
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config: %v", err))
@@ -60,25 +60,19 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.grpc.host", "0.0.0.0")
 	v.SetDefault("server.grpc.port", 9090)
 
-	// Database defaults
-	v.SetDefault("database.driver", "postgres")
-	v.SetDefault("database.host", "localhost")
-	v.SetDefault("database.port", 5432)
-	v.SetDefault("database.user", "postgres")
-	v.SetDefault("database.password", "")
-	v.SetDefault("database.name", "app")
-	v.SetDefault("database.ssl_mode", "disable")
-	v.SetDefault("database.max_open_conns", 25)
-	v.SetDefault("database.max_idle_conns", 5)
-	v.SetDefault("database.conn_max_lifetime", 5*time.Minute)
-
-	// Redis defaults
-	v.SetDefault("redis.host", "localhost")
-	v.SetDefault("redis.port", 6379)
-	v.SetDefault("redis.password", "")
-	v.SetDefault("redis.db", 0)
-
 	// Log defaults
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.format", "json")
+
+	// Identity BC defaults
+	v.SetDefault("identity.database.driver", "postgres")
+	v.SetDefault("identity.database.host", "localhost")
+	v.SetDefault("identity.database.port", 5432)
+	v.SetDefault("identity.database.user", "postgres")
+	v.SetDefault("identity.database.password", "")
+	v.SetDefault("identity.database.name", "identity")
+	v.SetDefault("identity.database.ssl_mode", "disable")
+	v.SetDefault("identity.database.max_open_conns", 25)
+	v.SetDefault("identity.database.max_idle_conns", 5)
+	v.SetDefault("identity.database.conn_max_lifetime", 5*time.Minute)
 }
