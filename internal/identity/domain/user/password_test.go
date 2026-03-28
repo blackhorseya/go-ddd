@@ -1,6 +1,7 @@
 package user
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -14,6 +15,7 @@ func TestNewHashedPassword(t *testing.T) {
 		{name: "exactly 6 chars", plain: "123456"},
 		{name: "empty", plain: "", wantErr: ErrPasswordRequired},
 		{name: "too short", plain: "12345", wantErr: ErrPasswordTooShort},
+		{name: "exceeds 72 bytes", plain: strings.Repeat("a", 73), wantErr: ErrPasswordTooLong},
 	}
 
 	for _, tt := range tests {

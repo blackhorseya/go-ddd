@@ -140,17 +140,27 @@ func (x *User) UpdateName(name string) error {
 }
 
 // ChangePassword replaces the user's password.
-// The HashedPassword value object is already validated by its constructor.
-func (x *User) ChangePassword(password HashedPassword) {
+func (x *User) ChangePassword(password HashedPassword) error {
+	if password.IsZero() {
+		return ErrPasswordRequired
+	}
+
 	x.password = password
 	x.updatedAt = time.Now()
+
+	return nil
 }
 
 // UpdateEmail changes the user's email address.
-// The Email value object is already validated by its constructor.
-func (x *User) UpdateEmail(email Email) {
+func (x *User) UpdateEmail(email Email) error {
+	if email.IsZero() {
+		return ErrEmailRequired
+	}
+
 	x.email = email
 	x.updatedAt = time.Now()
+
+	return nil
 }
 
 // Getters

@@ -239,9 +239,32 @@ func TestUser_UpdateEmail(t *testing.T) {
 	u, _ := NewUser("u-1", validEmail(), validPassword(), "Alice")
 	newEmail, _ := NewEmail("new@example.com")
 
-	u.UpdateEmail(newEmail)
+	if err := u.UpdateEmail(newEmail); err != nil {
+		t.Fatalf("UpdateEmail() unexpected error: %v", err)
+	}
 
 	if !u.Email().Equals(newEmail) {
 		t.Errorf("Email() = %v, want %v", u.Email(), newEmail)
+	}
+
+	if err := u.UpdateEmail(Email{}); err != ErrEmailRequired {
+		t.Errorf("UpdateEmail(zero) error = %v, want %v", err, ErrEmailRequired)
+	}
+}
+
+func TestUser_ChangePassword(t *testing.T) {
+	u, _ := NewUser("u-1", validEmail(), validPassword(), "Alice")
+	newPwd, _ := NewHashedPassword("newpass123")
+
+	if err := u.ChangePassword(newPwd); err != nil {
+		t.Fatalf("ChangePassword() unexpected error: %v", err)
+	}
+
+	if !u.Password().Verify("newpass123") {
+		t.Error("Password should verify with new plaintext")
+	}
+
+	if err := u.ChangePassword(HashedPassword{}); err != ErrPasswordRequired {
+		t.Errorf("ChangePassword(zero) error = %v, want %v", err, ErrPasswordRequired)
 	}
 }

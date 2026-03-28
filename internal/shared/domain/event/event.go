@@ -11,12 +11,12 @@ import (
 )
 
 // DomainEvent represents a significant occurrence in the domain.
-// All domain events must implement this interfacx.
+// All domain events must implement this interface.
 type DomainEvent interface {
 	// EventID returns the unique identifier of this event.
 	EventID() string
 
-	// EventType returns the type of the event (x.g. "order.created").
+	// EventType returns the type of the event (e.g. "order.created").
 	EventType() string
 
 	// OccurredAt returns the time when the event occurred.
@@ -25,7 +25,7 @@ type DomainEvent interface {
 	// AggregateID returns the ID of the aggregate that produced this event.
 	AggregateID() string
 
-	// AggregateType returns the type of the aggregate (x.g. "order").
+	// AggregateType returns the type of the aggregate (e.g. "order").
 	AggregateType() string
 }
 

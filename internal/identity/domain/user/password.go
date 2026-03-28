@@ -11,6 +11,7 @@ const bcryptCost = bcrypt.DefaultCost
 // Password errors.
 var (
 	ErrPasswordTooShort = errors.New("password must be at least 6 characters")
+	ErrPasswordTooLong  = errors.New("password must not exceed 72 bytes")
 	ErrPasswordRequired = errors.New("password is required")
 )
 
@@ -30,6 +31,10 @@ func NewHashedPassword(plain string) (HashedPassword, error) {
 
 	if len(plain) < minPasswordLength {
 		return HashedPassword{}, ErrPasswordTooShort
+	}
+
+	if len([]byte(plain)) > 72 {
+		return HashedPassword{}, ErrPasswordTooLong
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(plain), bcryptCost)

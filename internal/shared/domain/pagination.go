@@ -228,7 +228,7 @@ func EmptyCursorResult[T any]() CursorResult[T] {
 // Cursor Encoding (Base64)
 // ============================================================================
 
-// cursorSeparator is used to join multiple values in a cursox.
+// cursorSeparator is used to join multiple values in a cursor.
 // Using null byte as it won't appear in normal string values.
 const cursorSeparator = "\x00"
 
