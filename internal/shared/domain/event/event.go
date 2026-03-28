@@ -66,8 +66,8 @@ func NewBaseEvent(aggregateID, aggregateType, eventType string) BaseEvent {
 	}
 }
 
-func (e BaseEvent) EventID() string       { return e.id }
-func (e BaseEvent) EventType() string     { return e.eventType }
-func (e BaseEvent) OccurredAt() time.Time { return e.occurredAt }
-func (e BaseEvent) AggregateID() string   { return e.aggregateID }
-func (e BaseEvent) AggregateType() string { return e.aggregateType }
+func (x BaseEvent) EventID() string       { return x.id }
+func (x BaseEvent) EventType() string     { return x.eventType }
+func (x BaseEvent) OccurredAt() time.Time { return x.occurredAt }
+func (x BaseEvent) AggregateID() string   { return x.aggregateID }
+func (x BaseEvent) AggregateType() string { return x.aggregateType }
