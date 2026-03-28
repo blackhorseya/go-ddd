@@ -36,11 +36,11 @@ func (h *UserHandler) Register(r *gin.Engine) {
 //	@Tags			users
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		dto.RegisterUserInput					true	"Registration payload"
+//	@Param			request	body		dto.RegisterUserInput	true	"Registration payload"
 //	@Success		201		{object}	response.Response{data=dto.UserOutput}
-//	@Failure		400		{object}	response.Response{error=response.Error}
-//	@Failure		409		{object}	response.Response{error=response.Error}
-//	@Failure		500		{object}	response.Response{error=response.Error}
+//	@Failure		400		{object}	response.Response
+//	@Failure		409		{object}	response.Response
+//	@Failure		500		{object}	response.Response
 //	@Router			/api/v1/users [post]
 func (h *UserHandler) RegisterUser(c *gin.Context) {
 	var input dto.RegisterUserInput
