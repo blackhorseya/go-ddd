@@ -16,8 +16,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
+	grpcserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
 	httpserver "github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 	"github.com/blackhorseya/go-ddd/pkg/contextx"
@@ -96,10 +98,26 @@ func main() {
 		WriteTimeout: cfg.Server.HTTP.WriteTimeout,
 	}, cfg.App.Name)
 
-	// Start HTTP server in goroutine
-	errCh := make(chan error, 1)
+	// Initialize gRPC server
+	grpcSrv := grpcserver.NewServer(grpcserver.ServerConfig{
+		Host: cfg.Server.GRPC.Host,
+		Port: cfg.Server.GRPC.Port,
+	}, cfg.IsDevelopment())
+
+	// Start servers in goroutines
+	var wg sync.WaitGroup
+	errCh := make(chan error, 2)
+
+	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		if err := server.Run(runCtx); err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if err := grpcSrv.Run(runCtx); err != nil {
 			errCh <- err
 		}
 	}()
@@ -112,7 +130,8 @@ func main() {
 		ctx.Error("server error", "error", err)
 	}
 
-	// Trigger graceful shutdown
+	// Trigger graceful shutdown and wait for servers to finish
 	cancel()
+	wg.Wait()
 	ctx.Info("service shutdown complete")
 }
