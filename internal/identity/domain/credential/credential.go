@@ -32,14 +32,15 @@ const (
 
 // Domain errors for the Credential aggregate.
 var (
-	ErrEmptyID          = errors.New("credential id must not be empty")
-	ErrEmailRequired    = errors.New("email is required")
-	ErrAlreadyActive    = errors.New("credential is already active")
-	ErrAlreadySuspended = errors.New("credential is already suspended")
-	ErrCannotActivate   = errors.New("only inactive credentials can be activated")
-	ErrCannotSuspend    = errors.New("only active credentials can be suspended")
-	ErrNotFound         = errors.New("credential not found")
-	ErrEmailDuplicated  = errors.New("email already in use")
+	ErrEmptyID             = errors.New("credential id must not be empty")
+	ErrEmailRequired       = errors.New("email is required")
+	ErrAlreadyActive       = errors.New("credential is already active")
+	ErrAlreadySuspended    = errors.New("credential is already suspended")
+	ErrCannotActivate      = errors.New("only inactive credentials can be activated")
+	ErrCannotSuspend       = errors.New("only active credentials can be suspended")
+	ErrNotFound            = errors.New("credential not found")
+	ErrEmailDuplicated     = errors.New("email already in use")
+	ErrCredentialSuspended = errors.New("credential is suspended")
 )
 
 // Credential is the aggregate root for authentication identity.
@@ -79,7 +80,7 @@ func NewCredential(params NewCredentialParams) (*Credential, error) {
 		id:        params.ID,
 		email:     params.Email,
 		password:  params.Password,
-		status:    StatusInactive,
+		status:    StatusActive,
 		createdAt: now,
 		updatedAt: now,
 	}, nil
