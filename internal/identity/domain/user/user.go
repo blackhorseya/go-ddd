@@ -55,39 +55,74 @@ type User struct {
 	updatedAt time.Time
 }
 
+// NewUserParams holds the required parameters for creating a new User.
+type NewUserParams struct {
+	ID       string
+	Email    Email
+	Password HashedPassword
+	Name     string
+}
+
 // NewUser creates a new User in inactive status.
-// The caller must provide a pre-generated ID, a validated Email, a HashedPassword, and a non-empty name.
-func NewUser(id string, email Email, password HashedPassword, name string) (*User, error) {
-	if id == "" {
+func NewUser(params NewUserParams) (*User, error) {
+	if params.ID == "" {
 		return nil, ErrEmptyID
 	}
 
-	if email.IsZero() {
+	if params.Email.IsZero() {
 		return nil, ErrEmailRequired
 	}
 
-	if password.IsZero() {
+	if params.Password.IsZero() {
 		return nil, ErrPasswordRequired
 	}
 
-	if name == "" {
+	if params.Name == "" {
 		return nil, ErrEmptyName
 	}
 
-	if len(name) > maxNameLength {
+	if len(params.Name) > maxNameLength {
 		return nil, ErrNameTooLong
 	}
 
 	now := time.Now()
 
 	return &User{
-		id:        id,
-		email:     email,
-		password:  password,
-		name:      name,
+		id:        params.ID,
+		email:     params.Email,
+		password:  params.Password,
+		name:      params.Name,
 		status:    StatusInactive,
 		createdAt: now,
 		updatedAt: now,
+	}, nil
+}
+
+// ReconstituteUserParams holds all fields needed to restore a User from persistence.
+type ReconstituteUserParams struct {
+	ID        string
+	Email     Email
+	Password  HashedPassword
+	Name      string
+	Status    Status
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// ReconstituteUser restores a User from persistence without applying business rules.
+func ReconstituteUser(params ReconstituteUserParams) (*User, error) {
+	if params.ID == "" {
+		return nil, ErrEmptyID
+	}
+
+	return &User{
+		id:        params.ID,
+		email:     params.Email,
+		password:  params.Password,
+		name:      params.Name,
+		status:    params.Status,
+		createdAt: params.CreatedAt,
+		updatedAt: params.UpdatedAt,
 	}, nil
 }
 
