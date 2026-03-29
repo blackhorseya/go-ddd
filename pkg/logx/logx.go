@@ -56,6 +56,25 @@ func MustNew(cfg *Config) *Logger {
 	return l
 }
 
+// MustNewWithHandlers creates a Logger that fans out to the configured handler
+// plus any additional slog.Handlers. Useful for adding OTel log export alongside stdout.
+func MustNewWithHandlers(cfg *Config, extra ...slog.Handler) *Logger {
+	l, err := New(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(extra) == 0 {
+		return l
+	}
+
+	handlers := make([]slog.Handler, 0, 1+len(extra))
+	handlers = append(handlers, l.Handler())
+	handlers = append(handlers, extra...)
+
+	return &Logger{slog.New(NewFanoutHandler(handlers...))}
+}
+
 // Default returns a Logger with default configuration.
 func Default() *Logger {
 	l, _ := New(nil)

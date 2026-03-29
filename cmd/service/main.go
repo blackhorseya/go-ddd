@@ -42,7 +42,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	// Initialize logger
+	// Initialize logger (stdout only first, OTel handler added after setup)
 	logger := logx.MustNew(&logx.Config{
 		Level:     cfg.Log.Level,
 		Format:    cfg.Log.Format,
@@ -56,7 +56,7 @@ func main() {
 		WithService(cfg.App.Name).
 		WithEnvironment(cfg.App.Env)
 
-	// Initialize OpenTelemetry (tracing + metrics)
+	// Initialize OpenTelemetry (tracing + metrics + logs)
 	tp, err := otelx.Setup(ctx, otelx.Config{
 		Enabled:        cfg.OTel.Enabled,
 		ServiceName:    cfg.App.Name,
@@ -78,6 +78,18 @@ func main() {
 			ctx.Error("failed to shutdown otel provider", "error", err)
 		}
 	}()
+
+	// Re-configure logger with fan-out: stdout + OTel
+	logger = logx.MustNewWithHandlers(
+		&logx.Config{
+			Level:     cfg.Log.Level,
+			Format:    cfg.Log.Format,
+			Output:    cfg.Log.Output,
+			AddSource: cfg.Log.AddSource,
+		},
+		tp.SlogHandler(),
+	)
+	logger.SetAsDefault()
 
 	ctx.Info("service starting",
 		"version", Version,

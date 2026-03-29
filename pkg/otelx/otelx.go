@@ -6,15 +6,21 @@ import (
 	"errors"
 	"fmt"
 
+	"log/slog"
+
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/log/global"
 	noopmetric "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -22,10 +28,11 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-// Provider wraps the OpenTelemetry tracer and meter providers with shutdown capability.
+// Provider wraps the OpenTelemetry tracer, meter, and logger providers with shutdown capability.
 type Provider struct {
 	tracerProvider *sdktrace.TracerProvider
 	meterProvider  *metric.MeterProvider
+	loggerProvider *log.LoggerProvider
 }
 
 // Setup initializes OpenTelemetry tracing and metrics based on the provided configuration.
@@ -64,25 +71,43 @@ func Setup(ctx context.Context, cfg Config) (*Provider, error) {
 		return nil, fmt.Errorf("failed to setup meter provider: %w", err)
 	}
 
+	// Setup logger provider
+	lp, err := setupLoggerProvider(ctx, cfg, res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup logger provider: %w", err)
+	}
+
 	// Set global propagator
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	return &Provider{tracerProvider: tp, meterProvider: mp}, nil
+	return &Provider{tracerProvider: tp, meterProvider: mp, loggerProvider: lp}, nil
 }
 
-// Shutdown gracefully shuts down both tracer and meter providers.
+// Shutdown gracefully shuts down all providers.
 func (p *Provider) Shutdown(ctx context.Context) error {
 	var errs []error
-	if p.tracerProvider != nil {
-		errs = append(errs, p.tracerProvider.Shutdown(ctx))
+	if p.loggerProvider != nil {
+		errs = append(errs, p.loggerProvider.Shutdown(ctx))
 	}
 	if p.meterProvider != nil {
 		errs = append(errs, p.meterProvider.Shutdown(ctx))
 	}
+	if p.tracerProvider != nil {
+		errs = append(errs, p.tracerProvider.Shutdown(ctx))
+	}
 	return errors.Join(errs...)
+}
+
+// SlogHandler returns an slog.Handler that sends logs via OTel.
+// Use this to create a fan-out handler alongside the existing stdout handler.
+func (p *Provider) SlogHandler() slog.Handler {
+	if p.loggerProvider == nil {
+		return otelslog.NewHandler("")
+	}
+	return otelslog.NewHandler("", otelslog.WithLoggerProvider(p.loggerProvider))
 }
 
 func setupTracerProvider(ctx context.Context, cfg Config, res *resource.Resource) (*sdktrace.TracerProvider, error) {
@@ -108,6 +133,30 @@ func setupTracerProvider(ctx context.Context, cfg Config, res *resource.Resource
 	otel.SetTracerProvider(tp)
 
 	return tp, nil
+}
+
+func setupLoggerProvider(ctx context.Context, cfg Config, res *resource.Resource) (*log.LoggerProvider, error) {
+	if cfg.Exporter != "otlp" {
+		return nil, nil
+	}
+
+	opts := []otlploghttp.Option{otlploghttp.WithEndpoint(cfg.OTLP.Endpoint)}
+	if cfg.OTLP.Insecure {
+		opts = append(opts, otlploghttp.WithInsecure())
+	}
+
+	exporter, err := otlploghttp.New(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	lp := log.NewLoggerProvider(
+		log.WithResource(res),
+		log.WithProcessor(log.NewBatchProcessor(exporter)),
+	)
+	global.SetLoggerProvider(lp)
+
+	return lp, nil
 }
 
 func setupMeterProvider(ctx context.Context, cfg Config, res *resource.Resource) (*metric.MeterProvider, error) {
