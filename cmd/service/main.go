@@ -56,7 +56,7 @@ func main() {
 		WithService(cfg.App.Name).
 		WithEnvironment(cfg.App.Env)
 
-	// Initialize OpenTelemetry tracing
+	// Initialize OpenTelemetry (tracing + metrics)
 	tp, err := otelx.Setup(ctx, otelx.Config{
 		Enabled:        cfg.OTel.Enabled,
 		ServiceName:    cfg.App.Name,
@@ -75,7 +75,7 @@ func main() {
 	}
 	defer func() {
 		if err := tp.Shutdown(context.Background()); err != nil {
-			ctx.Error("failed to shutdown tracer provider", "error", err)
+			ctx.Error("failed to shutdown otel provider", "error", err)
 		}
 	}()
 

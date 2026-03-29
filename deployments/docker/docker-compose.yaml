@@ -22,6 +22,19 @@ services:
     ports:
       - "3200:3200"   # Tempo HTTP API (query)
 
+  # Prometheus — metrics storage (pull-based, scrapes OTel Collector)
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command: ["--config.file=/etc/prometheus/prometheus.yaml"]
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9091:9090"   # Prometheus UI / API (host 9091 to avoid gRPC 9090 conflict)
+    depends_on:
+      otel-collector:
+        condition: service_started
+
   # Grafana — unified observability UI
   grafana:
     image: grafana/grafana:11.6.0
@@ -37,7 +50,10 @@ services:
     depends_on:
       tempo:
         condition: service_started
+      prometheus:
+        condition: service_started
 
 volumes:
   tempo-data:
+  prometheus-data:
   grafana-data:

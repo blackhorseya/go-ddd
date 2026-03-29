@@ -1,34 +1,40 @@
-// Package otelx provides OpenTelemetry tracing setup and utilities.
+// Package otelx provides OpenTelemetry tracing and metrics setup and utilities.
 package otelx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	noopmetric "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-// TracerProvider wraps the OpenTelemetry tracer provider with shutdown capability.
-type TracerProvider struct {
-	provider *sdktrace.TracerProvider
+// Provider wraps the OpenTelemetry tracer and meter providers with shutdown capability.
+type Provider struct {
+	tracerProvider *sdktrace.TracerProvider
+	meterProvider  *metric.MeterProvider
 }
 
-// Setup initializes OpenTelemetry tracing based on the provided configuration.
-// Returns a TracerProvider that should be shut down when the application exits.
-func Setup(ctx context.Context, cfg Config) (*TracerProvider, error) {
+// Setup initializes OpenTelemetry tracing and metrics based on the provided configuration.
+// Returns a Provider that should be shut down when the application exits.
+func Setup(ctx context.Context, cfg Config) (*Provider, error) {
 	if !cfg.Enabled {
-		// Use noop provider when tracing is disabled
 		otel.SetTracerProvider(noop.NewTracerProvider())
-		return &TracerProvider{}, nil
+		otel.SetMeterProvider(noopmetric.NewMeterProvider())
+		return &Provider{}, nil
 	}
 
 	// Create resource with service information
@@ -46,13 +52,45 @@ func Setup(ctx context.Context, cfg Config) (*TracerProvider, error) {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	// Create exporter based on configuration
-	exporter, err := createExporter(ctx, cfg)
+	// Setup tracer provider
+	tp, err := setupTracerProvider(ctx, cfg, res)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create exporter: %w", err)
+		return nil, fmt.Errorf("failed to setup tracer provider: %w", err)
 	}
 
-	// Create sampler
+	// Setup meter provider
+	mp, err := setupMeterProvider(ctx, cfg, res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup meter provider: %w", err)
+	}
+
+	// Set global propagator
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+
+	return &Provider{tracerProvider: tp, meterProvider: mp}, nil
+}
+
+// Shutdown gracefully shuts down both tracer and meter providers.
+func (p *Provider) Shutdown(ctx context.Context) error {
+	var errs []error
+	if p.tracerProvider != nil {
+		errs = append(errs, p.tracerProvider.Shutdown(ctx))
+	}
+	if p.meterProvider != nil {
+		errs = append(errs, p.meterProvider.Shutdown(ctx))
+	}
+	return errors.Join(errs...)
+}
+
+func setupTracerProvider(ctx context.Context, cfg Config, res *resource.Resource) (*sdktrace.TracerProvider, error) {
+	exporter, err := createTraceExporter(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	var sampler sdktrace.Sampler
 	if cfg.SampleRate >= 1.0 {
 		sampler = sdktrace.AlwaysSample()
@@ -62,65 +100,95 @@ func Setup(ctx context.Context, cfg Config) (*TracerProvider, error) {
 		sampler = sdktrace.TraceIDRatioBased(cfg.SampleRate)
 	}
 
-	// Create tracer provider
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sampler),
 	)
-
-	// Set global tracer provider and propagator
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
 
-	return &TracerProvider{provider: tp}, nil
+	return tp, nil
 }
 
-// Shutdown gracefully shuts down the tracer provider.
-func (tp *TracerProvider) Shutdown(ctx context.Context) error {
-	if tp.provider == nil {
-		return nil
+func setupMeterProvider(ctx context.Context, cfg Config, res *resource.Resource) (*metric.MeterProvider, error) {
+	exporter, err := createMetricExporter(ctx, cfg)
+	if err != nil {
+		return nil, err
 	}
-	return tp.provider.Shutdown(ctx)
+
+	mp := metric.NewMeterProvider(
+		metric.WithResource(res),
+		metric.WithReader(metric.NewPeriodicReader(exporter)),
+	)
+	otel.SetMeterProvider(mp)
+
+	return mp, nil
 }
 
-// createExporter creates a span exporter based on configuration.
-func createExporter(ctx context.Context, cfg Config) (sdktrace.SpanExporter, error) {
+// createTraceExporter creates a span exporter based on configuration.
+func createTraceExporter(ctx context.Context, cfg Config) (sdktrace.SpanExporter, error) {
 	switch cfg.Exporter {
 	case "otlp":
-		return createOTLPExporter(ctx, cfg.OTLP)
+		return createOTLPTraceExporter(ctx, cfg.OTLP)
 	case "stdout":
 		return stdouttrace.New()
 	case "noop", "":
-		// Return a noop exporter by using stdout with no output
 		return stdouttrace.New(stdouttrace.WithWriter(noopWriter{}))
 	default:
 		return nil, fmt.Errorf("unknown exporter type: %s", cfg.Exporter)
 	}
 }
 
-// createOTLPExporter creates an OTLP exporter based on protocol.
-func createOTLPExporter(ctx context.Context, cfg OTLPConfig) (sdktrace.SpanExporter, error) {
+func createOTLPTraceExporter(ctx context.Context, cfg OTLPConfig) (sdktrace.SpanExporter, error) {
 	switch cfg.Protocol {
 	case "grpc":
-		opts := []otlptracegrpc.Option{
-			otlptracegrpc.WithEndpoint(cfg.Endpoint),
-		}
+		opts := []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(cfg.Endpoint)}
 		if cfg.Insecure {
 			opts = append(opts, otlptracegrpc.WithInsecure())
 		}
 		return otlptracegrpc.New(ctx, opts...)
 	case "http", "":
-		opts := []otlptracehttp.Option{
-			otlptracehttp.WithEndpoint(cfg.Endpoint),
-		}
+		opts := []otlptracehttp.Option{otlptracehttp.WithEndpoint(cfg.Endpoint)}
 		if cfg.Insecure {
 			opts = append(opts, otlptracehttp.WithInsecure())
 		}
 		return otlptracehttp.New(ctx, opts...)
+	default:
+		return nil, fmt.Errorf("unknown OTLP protocol: %s", cfg.Protocol)
+	}
+}
+
+// createMetricExporter creates a metric exporter based on configuration.
+func createMetricExporter(ctx context.Context, cfg Config) (metric.Exporter, error) {
+	switch cfg.Exporter {
+	case "otlp":
+		return createOTLPMetricExporter(ctx, cfg.OTLP)
+	case "stdout", "noop", "":
+		// For non-OTLP modes, use a noop metric exporter
+		return createOTLPMetricExporter(ctx, OTLPConfig{
+			Endpoint: "localhost:4318",
+			Insecure: true,
+			Protocol: "http",
+		})
+	default:
+		return nil, fmt.Errorf("unknown exporter type: %s", cfg.Exporter)
+	}
+}
+
+func createOTLPMetricExporter(ctx context.Context, cfg OTLPConfig) (metric.Exporter, error) {
+	switch cfg.Protocol {
+	case "grpc":
+		opts := []otlpmetricgrpc.Option{otlpmetricgrpc.WithEndpoint(cfg.Endpoint)}
+		if cfg.Insecure {
+			opts = append(opts, otlpmetricgrpc.WithInsecure())
+		}
+		return otlpmetricgrpc.New(ctx, opts...)
+	case "http", "":
+		opts := []otlpmetrichttp.Option{otlpmetrichttp.WithEndpoint(cfg.Endpoint)}
+		if cfg.Insecure {
+			opts = append(opts, otlpmetrichttp.WithInsecure())
+		}
+		return otlpmetrichttp.New(ctx, opts...)
 	default:
 		return nil, fmt.Errorf("unknown OTLP protocol: %s", cfg.Protocol)
 	}
