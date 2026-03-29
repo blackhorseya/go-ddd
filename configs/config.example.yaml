@@ -24,6 +24,15 @@ log:
   output: stdout # stdout, stderr
   add_source: false # add source file:line to log
 
+otel:
+  enabled: true
+  exporter: noop # otlp, stdout, noop
+  sample_rate: 1.0
+  otlp:
+    endpoint: localhost:4318
+    insecure: true
+    protocol: http # http, grpc
+
 # Identity bounded context
 identity:
   database:

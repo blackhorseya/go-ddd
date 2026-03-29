@@ -11,6 +11,7 @@ type AppConfig struct {
 	Server   Server         `mapstructure:"server"`
 	Auth     Auth           `mapstructure:"auth"`
 	Log      LogConfig      `mapstructure:"log"`
+	OTel     OTelConfig     `mapstructure:"otel"`
 	Identity IdentityConfig `mapstructure:"identity"`
 }
 
@@ -52,6 +53,22 @@ type LogConfig struct {
 	Format    string `mapstructure:"format"`
 	Output    string `mapstructure:"output"`
 	AddSource bool   `mapstructure:"add_source"`
+}
+
+// OTelConfig contains OpenTelemetry configuration.
+// This is defined in infrastructure layer to avoid dependency on pkg/otelx.
+type OTelConfig struct {
+	Enabled    bool       `mapstructure:"enabled"`
+	Exporter   string     `mapstructure:"exporter"`
+	SampleRate float64    `mapstructure:"sample_rate"`
+	OTLP       OTLPConfig `mapstructure:"otlp"`
+}
+
+// OTLPConfig contains OTLP exporter configuration.
+type OTLPConfig struct {
+	Endpoint string `mapstructure:"endpoint"`
+	Insecure bool   `mapstructure:"insecure"`
+	Protocol string `mapstructure:"protocol"`
 }
 
 // App contains application-level configuration.

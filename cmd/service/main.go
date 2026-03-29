@@ -57,10 +57,19 @@ func main() {
 		WithEnvironment(cfg.App.Env)
 
 	// Initialize OpenTelemetry tracing
-	otelCfg := otelx.DefaultConfig()
-	otelCfg.ServiceName = cfg.App.Name
-	otelCfg.Environment = cfg.App.Env
-	tp, err := otelx.Setup(ctx, otelCfg)
+	tp, err := otelx.Setup(ctx, otelx.Config{
+		Enabled:        cfg.OTel.Enabled,
+		ServiceName:    cfg.App.Name,
+		ServiceVersion: Version,
+		Environment:    cfg.App.Env,
+		Exporter:       cfg.OTel.Exporter,
+		SampleRate:     cfg.OTel.SampleRate,
+		OTLP: otelx.OTLPConfig{
+			Endpoint: cfg.OTel.OTLP.Endpoint,
+			Insecure: cfg.OTel.OTLP.Insecure,
+			Protocol: cfg.OTel.OTLP.Protocol,
+		},
+	})
 	if err != nil {
 		log.Fatalf("failed to setup tracing: %v", err)
 	}

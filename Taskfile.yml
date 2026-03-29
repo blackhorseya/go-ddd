@@ -201,6 +201,27 @@ tasks:
       STAGE: '{{.STAGE | default "dev"}}'
 
   # ============================================================================
+  # Infrastructure (Observability Stack)
+  # ============================================================================
+  infra:up:
+    desc: Start observability stack (OTel Collector + Tempo + Grafana)
+    dir: deployments/docker
+    cmds:
+      - docker compose up -d
+
+  infra:down:
+    desc: Stop observability stack
+    dir: deployments/docker
+    cmds:
+      - docker compose down
+
+  infra:logs:
+    desc: Tail observability stack logs
+    dir: deployments/docker
+    cmds:
+      - docker compose logs -f
+
+  # ============================================================================
   # Clean
   # ============================================================================
   clean:
