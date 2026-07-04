@@ -24,7 +24,7 @@ import (
 	"github.com/blackhorseya/go-ddd/pkg/otelx"
 )
 
-// 版本資訊，由 GoReleaser ldflags 注入
+// 版本資訊，由 GoReleaser ldflags 注入（發版由 release-drafter 主導）
 var (
 	Version = "dev"
 	Commit  = "none"
