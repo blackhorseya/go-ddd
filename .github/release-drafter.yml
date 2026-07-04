@@ -1,0 +1,106 @@
+# Release Drafter 設定
+# 依 merged PR 的 label 彙整下一版 release notes 草稿
+# Label 由 autolabeler 依 PR 標題（Conventional Commits）自動貼上
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+
+categories:
+  - title: "🚨 Breaking Changes"
+    labels:
+      - "breaking"
+  - title: "🚀 Features"
+    labels:
+      - "feature"
+  - title: "🐛 Bug Fixes"
+    labels:
+      - "fix"
+  - title: "⚡ Performance"
+    labels:
+      - "performance"
+  - title: "♻️ Refactor"
+    labels:
+      - "refactor"
+  - title: "📝 Documentation"
+    labels:
+      - "documentation"
+  - title: "🧪 Tests"
+    labels:
+      - "test"
+  - title: "🧰 Maintenance"
+    labels:
+      - "chore"
+      - "ci"
+      - "build"
+  - title: "📦 Dependencies"
+    labels:
+      - "dependencies"
+
+exclude-labels:
+  - "skip-changelog"
+
+change-template: "- $TITLE by @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - "breaking"
+  minor:
+    labels:
+      - "feature"
+  patch:
+    labels:
+      - "fix"
+      - "performance"
+      - "refactor"
+      - "documentation"
+      - "test"
+      - "chore"
+      - "ci"
+      - "build"
+      - "dependencies"
+  default: patch
+
+# 依 PR 標題（Conventional Commits）自動貼 label
+autolabeler:
+  - label: "breaking"
+    title:
+      - '/^[a-z]+(\(.+\))?!:/'
+  - label: "feature"
+    title:
+      - '/^feat(\(.+\))?:/'
+  - label: "fix"
+    title:
+      - '/^fix(\(.+\))?:/'
+  - label: "performance"
+    title:
+      - '/^perf(\(.+\))?:/'
+  - label: "refactor"
+    title:
+      - '/^refactor(\(.+\))?:/'
+  - label: "documentation"
+    title:
+      - '/^docs(\(.+\))?:/'
+  - label: "test"
+    title:
+      - '/^test(\(.+\))?:/'
+  - label: "chore"
+    title:
+      - '/^(chore|style|revert)(\(.+\))?:/'
+  - label: "ci"
+    title:
+      - '/^ci(\(.+\))?:/'
+  - label: "build"
+    title:
+      - '/^build(\(.+\))?:/'
+  - label: "dependencies"
+    files:
+      - "go.mod"
+      - "go.sum"
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

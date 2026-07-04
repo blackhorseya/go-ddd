@@ -1,0 +1,36 @@
+# Cache Cleanup workflow
+# PR 關閉時清除該 PR 分支的 Actions cache，避免佔用 10GB 上限
+name: Cache Cleanup
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    name: Delete PR Caches
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup caches for PR branch
+        run: |
+          echo "Fetching cache list for $BRANCH"
+          cacheIds=$(gh cache list --repo "$REPO" --ref "$BRANCH" --limit 100 --json id --jq '.[].id')
+
+          if [ -z "$cacheIds" ]; then
+            echo "No caches found."
+            exit 0
+          fi
+
+          echo "Deleting caches..."
+          for id in $cacheIds; do
+            gh cache delete "$id" --repo "$REPO" || true
+          done
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: refs/pull/${{ github.event.pull_request.number }}/merge

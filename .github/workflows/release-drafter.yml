@@ -1,0 +1,51 @@
+# Release Drafter workflow
+# 1. push to main：更新下一版 release notes 草稿（依 merged PR 的 label 分類）
+# 2. PR 開啟/更新：依 PR 標題（Conventional Commits）自動貼 label
+# 設定檔：.github/release-drafter.yml
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - main
+  # pull_request_target 讓 fork 來的 PR 也能被貼 label
+  # 此 workflow 不 checkout PR 程式碼，無安全疑慮
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-draft:
+    name: Update Release Draft
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Draft Release Notes
+        uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  autolabel:
+    name: Auto Label PR
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Apply Labels from PR Title
+        uses: release-drafter/release-drafter/autolabeler@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

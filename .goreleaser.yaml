@@ -49,32 +49,9 @@ checksum:
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 
+# Release notes 由 release-drafter 產生，goreleaser 不再生成 changelog
 changelog:
-  sort: asc
-  use: github
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^ci:"
-      - "^chore:"
-      - Merge pull request
-      - Merge branch
-  groups:
-    - title: "Features"
-      regexp: '^feat(\(.+\))?!?:'
-      order: 0
-    - title: "Bug Fixes"
-      regexp: '^fix(\(.+\))?!?:'
-      order: 1
-    - title: "Performance"
-      regexp: '^perf(\(.+\))?!?:'
-      order: 2
-    - title: "Refactor"
-      regexp: '^refactor(\(.+\))?!?:'
-      order: 3
-    - title: "Others"
-      order: 999
+  disable: true
 
 dockers_v2:
   - id: service
@@ -104,5 +81,6 @@ release:
     name: go-ddd
   draft: false
   prerelease: auto
-  mode: replace
+  # keep-existing：保留 release-drafter 發佈的 release notes，只上傳 artifacts
+  mode: keep-existing
   name_template: "v{{ .Version }}"

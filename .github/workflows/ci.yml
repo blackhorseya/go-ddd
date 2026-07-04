@@ -13,7 +13,6 @@ on:
       - "go.mod"
       - "go.sum"
       - ".goreleaser.yaml"
-      - ".semrelrc"
       - "Taskfile.yml"
       - ".golangci.yml"
       - "Dockerfile"
@@ -27,7 +26,6 @@ on:
       - "go.mod"
       - "go.sum"
       - ".goreleaser.yaml"
-      - ".semrelrc"
       - "Taskfile.yml"
       - ".golangci.yml"
       - "Dockerfile"
@@ -74,17 +72,19 @@ jobs:
 
       - name: Summary
         run: |
-          echo "## CI Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Actor** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Event** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Checks Passed ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Format" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Lint" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Test" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Build" >> $GITHUB_STEP_SUMMARY
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## CI Summary
+
+          | Item | Value |
+          |------|-------|
+          | **Commit** | `${{ github.sha }}` |
+          | **Branch** | `${{ github.ref_name }}` |
+          | **Actor** | @${{ github.actor }} |
+          | **Event** | `${{ github.event_name }}` |
+
+          ### Checks Passed ✅
+          - [x] Format
+          - [x] Lint
+          - [x] Test
+          - [x] Build
+          EOF
