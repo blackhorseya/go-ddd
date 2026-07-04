@@ -1,5 +1,5 @@
 # CD workflow for Go DDD project
-# 發版流程：release-drafter 維護草稿 → 手動 Publish release → 觸發此 workflow
+# 觸發來源：release-drafter 自動發版後 dispatch（主要路徑）、手動 Publish release、手動 dispatch
 # Jobs: prepare（版本解析與設定驗證）→ publish（建置與發佈）→ summary（結果彙報）
 name: CD
 run-name: "CD ${{ inputs.version || github.event.release.tag_name }}"
