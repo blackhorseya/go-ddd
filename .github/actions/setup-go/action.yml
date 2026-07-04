@@ -12,13 +12,13 @@ runs:
   using: "composite"
   steps:
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: ${{ inputs.go-version-file }}
         cache: true
 
     - name: Cache golangci-lint
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/golangci-lint
         key: golangci-lint-${{ runner.os }}-${{ hashFiles('.golangci.yml', '.golangci.yaml') }}
