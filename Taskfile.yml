@@ -201,22 +201,22 @@ tasks:
       STAGE: '{{.STAGE | default "dev"}}'
 
   # ============================================================================
-  # Infrastructure (Observability Stack)
+  # Infrastructure (Local Dev Stack)
   # ============================================================================
   infra:up:
-    desc: Start observability stack (OTel Collector + Tempo + Grafana)
+    desc: Start local infra stack (OTel Collector + Tempo + Grafana + PostgreSQL)
     dir: deployments/docker
     cmds:
       - docker compose up -d
 
   infra:down:
-    desc: Stop observability stack
+    desc: Stop local infra stack
     dir: deployments/docker
     cmds:
       - docker compose down
 
   infra:logs:
-    desc: Tail observability stack logs
+    desc: Tail local infra stack logs
     dir: deployments/docker
     cmds:
       - docker compose logs -f

@@ -67,8 +67,27 @@ services:
       loki:
         condition: service_started
 
+  # PostgreSQL — primary datastore for the Identity BC
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=identity
+      # dev only: configs/local.yaml uses an empty password, so skip password auth
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # PostgreSQL (matches identity.database in configs/local.yaml)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d identity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   tempo-data:
   loki-data:
   prometheus-data:
   grafana-data:
+  postgres-data:
