@@ -11,7 +11,8 @@ import (
 	"github.com/blackhorseya/go-ddd/internal/identity/application/usecase"
 	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/auth"
 	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/idgen"
-	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/persistence/memory"
+	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/persistence"
+	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/persistence/postgres"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/grpc"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http"
 	"github.com/blackhorseya/go-ddd/internal/shared/adapter/http/handler"
@@ -22,11 +23,17 @@ import (
 // Injectors from wire.go:
 
 // InitializeApp builds the application with all dependencies wired up.
-func InitializeApp(cfg *config.AppConfig) (*App, error) {
+// The returned cleanup releases resources held by providers, such as the database pool.
+func InitializeApp(cfg *config.AppConfig) (*App, func(), error) {
 	server := provideHTTPServer(cfg)
 	grpcServer := provideGRPCServer(cfg)
 	healthHandler := handler.NewHealthHandler()
-	repository := memory.NewCredentialRepository()
+	persistenceConfig := providePersistenceConfig(cfg)
+	db, cleanup, err := persistence.NewDB(persistenceConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	repository := postgres.NewCredentialRepository(db)
 	idGenerator := idgen.NewUUIDGenerator()
 	bus := watermill.NewBus()
 	registerUseCase := usecase.NewRegisterUseCase(repository, idGenerator, bus)
@@ -36,7 +43,9 @@ func InitializeApp(cfg *config.AppConfig) (*App, error) {
 	refreshTokenUseCase := usecase.NewRefreshTokenUseCase(repository, tokenService)
 	authHandler := handler2.NewAuthHandler(registerUseCase, loginUseCase, refreshTokenUseCase)
 	app := NewApp(server, grpcServer, healthHandler, authHandler)
-	return app, nil
+	return app, func() {
+		cleanup()
+	}, nil
 }
 
 // wire.go:
@@ -55,6 +64,23 @@ func provideJWTConfig(cfg *config.AppConfig) auth.JWTConfig {
 		Secret:          cfg.Auth.JWT.Secret,
 		AccessTokenTTL:  cfg.Auth.JWT.AccessTokenTTL,
 		RefreshTokenTTL: cfg.Auth.JWT.RefreshTokenTTL,
+	}
+}
+
+// providePersistenceConfig maps the load-time config aggregate onto the Identity
+// BC's own persistence config, keeping the BC free of shared config types.
+func providePersistenceConfig(cfg *config.AppConfig) persistence.Config {
+	return persistence.Config{
+		Driver:          cfg.Identity.Database.Driver,
+		Host:            cfg.Identity.Database.Host,
+		Port:            cfg.Identity.Database.Port,
+		User:            cfg.Identity.Database.User,
+		Password:        cfg.Identity.Database.Password,
+		Name:            cfg.Identity.Database.Name,
+		SSLMode:         cfg.Identity.Database.SSLMode,
+		MaxOpenConns:    cfg.Identity.Database.MaxOpenConns,
+		MaxIdleConns:    cfg.Identity.Database.MaxIdleConns,
+		ConnMaxLifetime: cfg.Identity.Database.ConnMaxLifetime,
 	}
 }
 
