@@ -32,6 +32,21 @@ builds:
         - cmd: sh -c 'if [ "{{ .Arch }}" = "arm64" ]; then cp {{ .Path }} {{ dir .Path }}/bootstrap && zip -j {{ dir .Path }}/bootstrap.zip {{ dir .Path }}/bootstrap; fi'
           output: true
 
+  # Schema migration CLI — shipped alongside the service so a deployment can run
+  # migrations (e.g. a Kubernetes initContainer) with a binary of the exact same version.
+  - id: migrate
+    main: ./cmd/migrate
+    binary: migrate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
 archives:
   - id: default
     formats:
@@ -57,6 +72,7 @@ dockers_v2:
   - id: service
     ids:
       - service
+      - migrate
     dockerfile: Dockerfile
     images:
       - ghcr.io/blackhorseya/go-ddd

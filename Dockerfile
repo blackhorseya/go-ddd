@@ -24,6 +24,10 @@ ARG TARGETPLATFORM
 # GoReleaser places binaries in linux/<arch>/ directories
 COPY ${TARGETPLATFORM}/service /app/service
 
+# Migration CLI, same version as the service. Run it as a separate entrypoint
+# (e.g. a Kubernetes initContainer): ["/app/migrate", "-config", "...", "up"]
+COPY ${TARGETPLATFORM}/migrate /app/migrate
+
 # Set ownership to non-root user
 RUN chown -R appuser:appgroup /app
 
