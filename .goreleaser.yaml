@@ -48,11 +48,26 @@ builds:
       - -s -w
 
 archives:
-  - id: default
+  # One archive per binary: an environment that only runs migrations does not
+  # need to download the service, and vice versa.
+  - id: service
+    ids:
+      - service
     formats:
       - tar.gz
     name_template: >-
       {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+
+  - id: migrate
+    ids:
+      - migrate
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}-migrate_
       {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}

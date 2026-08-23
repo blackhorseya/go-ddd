@@ -241,7 +241,8 @@ task db:migrate:up CONFIG=configs/staging.yaml
 
 檔案命名遵循 golang-migrate 慣例：`{6 位序號}_{描述}.{up|down}.sql`。
 
-發版時 `migrate` 會與 `service` 一起打包（同一個 tar.gz、同一個 Docker image），
+發版時 `migrate` 有自己的 archive（`go-ddd-migrate_{version}_{os}_{arch}.tar.gz`），
+只跑 migration 的環境不必下載整個 service。同時它也被打包進 service 的 Docker image，
 可在 Kubernetes 以 initContainer 執行，確保 migration 與服務版本一致：
 
 ```yaml
