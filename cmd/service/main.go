@@ -102,10 +102,11 @@ func main() {
 	)
 
 	// Initialize application via Wire
-	app, err := InitializeApp(cfg)
+	app, cleanup, err := InitializeApp(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
 	}
+	defer cleanup()
 
 	// Setup signal handling
 	signals := make(chan os.Signal, 1)
