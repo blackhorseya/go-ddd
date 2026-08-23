@@ -26,6 +26,8 @@ internal/
 │   ├── adapter/         # 該 BC 的適配器層
 │   └── infrastructure/  # 該 BC 的基礎設施層
 pkg/                     # 公共可重用套件（contextx, logx, otelx）
+scripts/
+└── migrations/{bc}/     # 各 BC 的 SQL schema migration（golang-migrate，embed 進 binary）
 ```
 
 ### Clean Architecture 分層（每個 BC 內部）
@@ -121,6 +123,28 @@ task generate:wire          # Wire 依賴注入（修改 wire.go 後必須執行
 task swagger                # Swagger 文件（輸出至 api/openapi/）
 ```
 
+### Database Migration
+
+使用 [golang-migrate](https://github.com/golang-migrate/migrate) 作為 library（非 CLI），
+SQL 放在 `scripts/migrations/{bc}/`，透過 `embed.FS` 打包進 binary。
+
+```bash
+task db:migrate:up                          # 套用所有待執行 migration
+task db:migrate:version                     # 查看目前 schema 版本
+task db:migrate:down                        # 全部回滾（破壞性，task 已帶 -yes）
+task db:migrate:steps -- -1                 # 前進/回退 n 步
+task db:migrate:force -- 1                  # 修復 dirty 狀態（不執行 SQL）
+task db:migrate:create -- add_user_table    # 產生新的 up/down 檔案對
+
+# 指定其他設定檔
+task db:migrate:up CONFIG=configs/staging.yaml
+```
+
+- 連線參數取自設定檔的 `identity.database`，不在 Taskfile 重複硬寫 DSN
+- Migration **不在服務啟動時自動執行**，須明確以上述指令觸發
+- golang-migrate 的 CLI 將各 DB driver 藏在 build tag 後，`go.mod` 的 `tool` directive
+  無法傳 tags，故不納入 tool 管理，改由 `cmd/migrate/` 這支自製 CLI 承擔
+
 ### 工具管理
 
 開發工具（golangci-lint, wire, swag, mockgen）透過 `go.mod` 的 `tool` directive 管理，
@@ -141,6 +165,9 @@ goimports local-prefixes: `github.com/blackhorseya/go-ddd`（三段式：stdlib 
 5. **Use Case 只做編排** - 業務邏輯放 Domain
 6. **按聚合組織套件** - 一個聚合一個 package（如 `domain/credential/`）
 7. **Mock 生成** - 使用 `go.uber.org/mock/mockgen`，mock 檔案與介面同目錄
+8. **Repository 實作按技術分 package** - `persistence/postgres/`（正式）、`persistence/memory/`（測試與範例）
+9. **驅動錯誤在 Repository 轉譯成 Domain error** - 如 unique violation → `credential.ErrEmailDuplicated`，
+   判斷依據是 constraint 名稱而非只看 SQLSTATE，避免日後新增 unique 欄位時誤判
 
 ### 測試策略
 
@@ -149,6 +176,10 @@ goimports local-prefixes: `github.com/blackhorseya/go-ddd`（三段式：stdlib 
 | 單元測試 | `*_test.go` 與程式碼並列 | 測試單一函數/方法  |
 | 整合測試 | `tests/integration/`     | 測試元件間整合     |
 | E2E 測試 | `tests/e2e/`             | 測試完整使用者流程 |
+
+整合測試需要真實 PostgreSQL（`task test:integration`），連不上時會 skip 而非 fail，
+所以 `task test` 在沒有本機 infra 時仍會全綠。連線設定走 `TEST_DATABASE_*` 環境變數，
+預設連到獨立的 `identity_test` 資料庫（不存在時自動建立），不會動到開發用的 `identity`。
 
 - 使用 Table-Driven Tests + Arrange-Act-Assert 模式
 - Domain Layer 必須 100% 覆蓋

@@ -45,6 +45,8 @@ internal/
 │   ├── adapter/http/handler/       # REST API handler
 │   └── infrastructure/             # persistence, idgen
 pkg/                                # 公共可重用套件（contextx, logx, otelx）
+scripts/
+└── migrations/{bc}/                # 各 BC 的 SQL schema migration（embed 進 binary）
 ```
 
 ### Clean Architecture 分層
@@ -172,6 +174,7 @@ task build                  # 編譯二進位檔案
 task test                   # 執行全部測試
 task test:cover             # 測試覆蓋率
 task test:race              # 競態檢測
+task test:integration       # 整合測試（需 PostgreSQL，連不上則 skip）
 
 # 程式碼品質
 task lint                   # golangci-lint 檢查
@@ -182,6 +185,11 @@ task fmt                    # 格式化程式碼
 task generate               # 產生 Mocks
 task generate:wire          # Wire 依賴注入
 task swagger                # Swagger 文件（輸出至 api/openapi/）
+
+# 資料庫 Migration
+task db:migrate:up                          # 套用所有待執行 migration
+task db:migrate:version                     # 查看目前 schema 版本
+task db:migrate:create -- add_user_table    # 產生新的 up/down 檔案對
 
 # 開發工作流程
 task dev                    # 開發檢查（lint + test）
@@ -208,6 +216,55 @@ go run ./cmd/service/ -config ./configs/config.yaml
 ```
 
 支援環境變數覆蓋（Viper），如 `APP_NAME=myservice`。
+
+## 資料庫 Migration
+
+使用 [golang-migrate](https://github.com/golang-migrate/migrate) 作為 **library**（非 CLI）。
+SQL 檔放在 `scripts/migrations/{bc}/`，由該目錄的 `embed.go` 以 `embed.FS` 打包進 binary，
+部署時不需額外掛載 SQL 檔。
+
+```bash
+task infra:up                               # 啟動本地 PostgreSQL
+task db:migrate:up                          # 套用所有待執行 migration
+task db:migrate:version                     # 查看目前 schema 版本
+task db:migrate:steps -- -1                 # 回退一步
+task db:migrate:down                        # 全部回滾（破壞性）
+task db:migrate:force -- 1                  # 修復 dirty 狀態（不執行 SQL）
+task db:migrate:create -- add_user_table    # 產生新的 up/down 檔案對
+
+# 指定其他設定檔
+task db:migrate:up CONFIG=configs/staging.yaml
+```
+
+連線參數取自設定檔的 `identity.database` 區段。Migration **不會在服務啟動時自動執行**，
+須明確透過上述指令（或 `cmd/migrate/` binary）觸發，讓 schema 變更與服務部署解耦。
+
+檔案命名遵循 golang-migrate 慣例：`{6 位序號}_{描述}.{up|down}.sql`。
+
+發版時 `migrate` 會與 `service` 一起打包（同一個 tar.gz、同一個 Docker image），
+可在 Kubernetes 以 initContainer 執行，確保 migration 與服務版本一致：
+
+```yaml
+initContainers:
+  - name: migrate
+    image: ghcr.io/blackhorseya/go-ddd:1.2.0
+    command: ["/app/migrate", "-config", "/etc/go-ddd/config.yaml", "up"]
+```
+
+## 持久層
+
+Identity BC 的 `credential.Repository` 有兩個實作：
+
+| 實作 | 位置 | 用途 |
+| ---- | ---- | ---- |
+| PostgreSQL | `internal/identity/infrastructure/persistence/postgres/` | 正式實作，由 Wire 注入 |
+| In-memory | `internal/identity/infrastructure/persistence/memory/` | 單元測試與範例 |
+
+PostgreSQL 實作以 `database/sql` + `pgx/v5` stdlib driver 撰寫，並將驅動錯誤轉譯回領域錯誤
+（unique violation → `ErrEmailDuplicated`、`sql.ErrNoRows` → `ErrNotFound`），
+讓 Application 層只需要處理 domain error。
+
+服務啟動時會 ping 資料庫，**連不上即啟動失敗**（fail-fast），避免問題延遲到第一個請求才浮現。
 
 ## 測試策略
 
