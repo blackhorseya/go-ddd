@@ -16,6 +16,8 @@ provider:
 functions:
   api:
     handler: bootstrap
+    package:
+      artifact: dist/service_linux_arm64_v8.0/bootstrap.zip
     layers:
       # Lambda Web Adapter - converts HTTP server to Lambda
       # https://github.com/awslabs/aws-lambda-web-adapter
@@ -27,5 +29,26 @@ functions:
     events:
       - httpApi: '*'
 
+  # Schema migrations. No events: invoke it manually or from the deploy pipeline
+  # (`serverless invoke -f migrate`). The same binary as the migrate CLI — it
+  # detects AWS_LAMBDA_RUNTIME_API and applies pending migrations, nothing else.
+  migrate:
+    handler: bootstrap
+    description: Applies pending schema migrations for the Identity bounded context
+    # Migrations may run far longer than an HTTP request; 900s is the Lambda ceiling.
+    timeout: 900
+    package:
+      artifact: dist/migrate_linux_arm64_v8.0/bootstrap.zip
+    # Database settings come from APP_IDENTITY_DATABASE_* environment variables.
+    # Inject them at deploy time (SSM / Secrets Manager) rather than committing
+    # credentials here, and give the function VPC access to reach RDS.
+    # environment:
+    #   APP_IDENTITY_DATABASE_HOST: ${ssm:/go-ddd/db/host}
+    #   APP_IDENTITY_DATABASE_NAME: identity
+    #   APP_IDENTITY_DATABASE_USER: ${ssm:/go-ddd/db/user}
+    #   APP_IDENTITY_DATABASE_PASSWORD: ${ssm:/go-ddd/db/password~true}
+    #   APP_IDENTITY_DATABASE_SSL_MODE: require
+
 package:
-  artifact: dist/service_linux_arm64_v8.0/bootstrap.zip
+  # Each function ships its own prebuilt artifact, so they cannot share one zip.
+  individually: true

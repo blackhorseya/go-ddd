@@ -144,6 +144,8 @@ task db:migrate:up CONFIG=configs/staging.yaml
 - Migration **不在服務啟動時自動執行**，須明確以上述指令觸發
 - golang-migrate 的 CLI 將各 DB driver 藏在 build tag 後，`go.mod` 的 `tool` directive
   無法傳 tags，故不納入 tool 管理，改由 `cmd/migrate/` 這支自製 CLI 承擔
+- `cmd/migrate/` 是雙模式 binary：偵測到 `AWS_LAMBDA_RUNTIME_API` 時以 Lambda
+  Runtime API 模式啟動（只執行 `up`），否則走 CLI 模式
 
 ### 工具管理
 

@@ -252,6 +252,24 @@ initContainers:
     command: ["/app/migrate", "-config", "/etc/go-ddd/config.yaml", "up"]
 ```
 
+### 在 AWS Lambda 執行
+
+同一支 binary 也能當 Lambda function：它偵測到 `AWS_LAMBDA_RUNTIME_API` 就切換成
+Runtime API 模式，套用所有待執行的 migration 後回報結果。
+
+```bash
+serverless invoke -f migrate --stage dev
+# {"version":1,"dirty":false,"message":"migrations applied"}
+```
+
+- **只支援 `up`**：`down` / `force` 這類破壞性操作在 CLI 有 `-yes` 把關，
+  而 invocation 沒有對等的確認機制，因此不開放。函式不接受任何 event payload。
+- 設定走 `APP_IDENTITY_DATABASE_*` 環境變數（部署包裡沒有設定檔），
+  憑證建議由 SSM / Secrets Manager 注入。
+- Lambda 逾時上限 15 分鐘，超大 migration 不適合這條路；
+  函式需具備連到 RDS 的 VPC 權限。
+- 併發呼叫是安全的 —— golang-migrate 會取得 PostgreSQL advisory lock。
+
 ## 持久層
 
 Identity BC 的 `credential.Repository` 有兩個實作：

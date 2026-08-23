@@ -1,4 +1,9 @@
-// Package main is the database migration CLI for the Identity bounded context.
+// Package main is the database migration entry point for the Identity bounded
+// context. It runs in two modes from a single binary:
+//
+//   - As a CLI, with the subcommands below.
+//   - As an AWS Lambda function, when AWS_LAMBDA_RUNTIME_API is present. Only
+//     "up" is reachable that way; see handleMigrate.
 //
 // Usage:
 //
@@ -14,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,11 +27,79 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/aws/aws-lambda-go/lambda"
+
 	"github.com/blackhorseya/go-ddd/internal/identity/infrastructure/persistence"
 	"github.com/blackhorseya/go-ddd/internal/shared/infrastructure/config"
 )
 
+// lambdaRuntimeAPIEnv is set by AWS only inside the Lambda execution
+// environment, which is how the binary knows which mode to start in.
+const lambdaRuntimeAPIEnv = "AWS_LAMBDA_RUNTIME_API"
+
 func main() {
+	if os.Getenv(lambdaRuntimeAPIEnv) != "" {
+		lambda.Start(handleMigrate)
+
+		return
+	}
+
+	if err := runCLI(); err != nil {
+		log.Fatalf("migrate: %v", err)
+	}
+}
+
+// migrateResult reports where the schema stands once the function returns.
+type migrateResult struct {
+	Version uint   `json:"version"`
+	Dirty   bool   `json:"dirty"`
+	Message string `json:"message"`
+}
+
+// handleMigrate applies every pending migration.
+//
+// It deliberately accepts no event payload: only "up" is reachable from Lambda,
+// because the -yes confirmation guarding the destructive commands has no
+// equivalent in an invocation. Configuration comes from APP_* environment
+// variables — there is no config file in the deployment package.
+//
+// The context is unused today because golang-migrate's API takes none; it stays
+// in the signature so database work can be scoped to the invocation later.
+func handleMigrate(_ context.Context) (migrateResult, error) {
+	cfg, err := config.Load("")
+	if err != nil {
+		return migrateResult{}, fmt.Errorf("load config: %w", err)
+	}
+
+	migrator, err := persistence.NewMigrator(toPersistenceConfig(cfg))
+	if err != nil {
+		return migrateResult{}, fmt.Errorf("create migrator: %w", err)
+	}
+
+	defer func() {
+		if err := migrator.Close(); err != nil {
+			log.Printf("failed to close migrator: %v", err)
+		}
+	}()
+
+	if err := migrator.Up(); err != nil {
+		return migrateResult{}, err
+	}
+
+	version, dirty, err := migrator.Version()
+	if errors.Is(err, persistence.ErrNoVersion) {
+		return migrateResult{Message: "no migration applied"}, nil
+	}
+
+	if err != nil {
+		return migrateResult{}, fmt.Errorf("read schema version: %w", err)
+	}
+
+	return migrateResult{Version: version, Dirty: dirty, Message: "migrations applied"}, nil
+}
+
+// runCLI parses the command line and dispatches one subcommand.
+func runCLI() error {
 	configPath := flag.String("config", "", "path to config file")
 	confirm := flag.Bool("yes", false, "confirm destructive commands (down)")
 	flag.Usage = usage
@@ -39,13 +113,14 @@ func main() {
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		return fmt.Errorf("load config: %w", err)
 	}
 
 	migrator, err := persistence.NewMigrator(toPersistenceConfig(cfg))
 	if err != nil {
-		log.Fatalf("failed to create migrator: %v", err)
+		return fmt.Errorf("create migrator: %w", err)
 	}
+
 	defer func() {
 		if err := migrator.Close(); err != nil {
 			log.Printf("failed to close migrator: %v", err)
@@ -53,8 +128,10 @@ func main() {
 	}()
 
 	if err := run(migrator, args, *confirm); err != nil {
-		log.Fatalf("migrate %s: %v", args[0], err)
+		return fmt.Errorf("%s: %w", args[0], err)
 	}
+
+	return nil
 }
 
 // run dispatches a single subcommand. It is separated from main so every exit

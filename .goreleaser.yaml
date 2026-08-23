@@ -32,8 +32,11 @@ builds:
         - cmd: sh -c 'if [ "{{ .Arch }}" = "arm64" ]; then cp {{ .Path }} {{ dir .Path }}/bootstrap && zip -j {{ dir .Path }}/bootstrap.zip {{ dir .Path }}/bootstrap; fi'
           output: true
 
-  # Schema migration CLI — shipped alongside the service so a deployment can run
-  # migrations (e.g. a Kubernetes initContainer) with a binary of the exact same version.
+  # Schema migration binary — shipped alongside the service so a deployment can run
+  # migrations (e.g. a Kubernetes initContainer) with a binary of the exact same
+  # version. The same binary serves as a Lambda function: it switches to Runtime
+  # API mode when AWS_LAMBDA_RUNTIME_API is set, which is why it also gets the
+  # bootstrap packaging below.
   - id: migrate
     main: ./cmd/migrate
     binary: migrate
@@ -46,6 +49,10 @@ builds:
       - arm64
     ldflags:
       - -s -w
+    hooks:
+      post:
+        - cmd: sh -c 'if [ "{{ .Arch }}" = "arm64" ]; then cp {{ .Path }} {{ dir .Path }}/bootstrap && zip -j {{ dir .Path }}/bootstrap.zip {{ dir .Path }}/bootstrap; fi'
+          output: true
 
 archives:
   # One archive per binary: an environment that only runs migrations does not
