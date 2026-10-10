@@ -1,5 +1,6 @@
 # Release Drafter workflow
-# 1. CI 在 main 上成功後：自動發佈 release（依 merged PR 的 label 分類 notes、推算版號），並 dispatch CD
+# 1. CI 在 main 上成功後：PR 帶有會改變產出物的 label 才自動發佈 release 並 dispatch CD，
+#    否則只更新 draft；也可手動 dispatch 強制發版
 #    註：GITHUB_TOKEN 發佈的 release 不會觸發其他 workflow，故需主動 dispatch cd.yml
 # 2. PR 開啟/更新：依 PR 標題（Conventional Commits）自動貼 label
 # 設定檔：.github/release-drafter.yml
@@ -11,6 +12,8 @@ on:
     workflows: ["CI"]
     types: [completed]
     branches: [main]
+  # 手動發版：把累積在 draft 裡、不足以自動發版的變更（ci / docs / test / chore）發出去
+  workflow_dispatch:
   # pull_request_target 讓 fork 來的 PR 也能被貼 label
   # 此 workflow 不 checkout PR 程式碼，無安全疑慮
   pull_request_target:
@@ -31,22 +34,54 @@ jobs:
   publish-release:
     name: Publish Release
     if: >
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: write
+      pull-requests: read
     steps:
-      - name: Publish Release
+      # 只有會改變產出物（binary / image）的 PR 才自動發版；
+      # 其餘只更新 draft，等下一次發版時一併列入 release notes
+      - name: Decide whether to publish
+        id: decide
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          labels=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" --jq '.[0].labels[].name' || true)
+          echo "PR labels: ${labels:-<none>}"
+
+          publish=false
+          while read -r l; do
+            case "$l" in
+              breaking|feature|fix|performance|refactor|build|dependencies) publish=true ;;
+            esac
+          done <<< "$labels"
+          # GitHub Actions 的升級也帶 dependencies label，但不影響產出物
+          if grep -qx github_actions <<< "$labels"; then
+            publish=false
+          fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Update or publish release
         id: drafter
         uses: release-drafter/release-drafter@v7
         with:
-          publish: true
+          publish: ${{ steps.decide.outputs.publish }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger CD
+        if: steps.decide.outputs.publish == 'true'
         run: gh workflow run cd.yml -R "$GITHUB_REPOSITORY" -f version="$TAG"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
