@@ -7,7 +7,7 @@
 # GoReleaser dockers_v2 places binaries in: linux/<arch>/<binary>
 # Using TARGETPLATFORM ARG to select the correct platform.
 
-FROM alpine:3.20
+FROM alpine:3.24
 
 # Install ca-certificates for HTTPS connections and tzdata for timezone support
 RUN apk --no-cache add ca-certificates tzdata
