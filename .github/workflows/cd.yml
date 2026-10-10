@@ -91,6 +91,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      # Expose ACTIONS_RUNTIME_TOKEN / cache URLs to run steps so GoReleaser's
+      # buildx calls can use the gha layer cache (see dockers_v2.flags)
+      - name: Expose GitHub Actions runtime
+        uses: crazy-max/ghaction-github-runtime@v4
+
       - name: Build & Publish
         run: task release
         env:
