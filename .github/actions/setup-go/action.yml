@@ -1,6 +1,17 @@
 # Composite action for Go environment setup with caching
+#
+# Caches are keyed per commit with a prefix fallback (restore-keys), so every
+# run restores the most recent cache and main keeps refreshing it. GitHub
+# caches are immutable once saved; a key that only hashes go.sum would freeze
+# the build cache at its first save.
+#
+# Only pushes to main save. PR and tag scopes can't be read by other refs, so
+# saving there would only burn the 10GB quota.
+#
+# The Go build cache also holds the compiled `go tool golangci-lint` binary,
+# so a warm cache skips downloading and rebuilding the linter.
 name: "Setup Go"
-description: "Setup Go with module and lint cache"
+description: "Setup Go with module, build and lint cache"
 
 inputs:
   go-version-file:
@@ -12,15 +23,68 @@ runs:
   using: "composite"
   steps:
     - name: Setup Go
+      id: setup
       uses: actions/setup-go@v6
       with:
         go-version-file: ${{ inputs.go-version-file }}
-        cache: true
+        cache: false
+
+    - name: Resolve cache keys
+      id: keys
+      shell: bash
+      run: |
+        GO_PREFIX="go-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup.outputs.go-version }}-"
+        LINT_PREFIX="golangci-lint-${{ runner.os }}-${{ hashFiles('.golangci.yml', '.golangci.yaml') }}-"
+        {
+          echo "go-prefix=$GO_PREFIX"
+          echo "go-key=$GO_PREFIX${{ hashFiles('**/go.sum') }}-${{ github.sha }}"
+          echo "go-mod-prefix=$GO_PREFIX${{ hashFiles('**/go.sum') }}-"
+          echo "lint-prefix=$LINT_PREFIX"
+          echo "lint-key=$LINT_PREFIX${{ github.sha }}"
+          echo "gomodcache=$(go env GOMODCACHE)"
+          echo "gocache=$(go env GOCACHE)"
+        } >> "$GITHUB_OUTPUT"
+
+    # Restore + save (post step) on main
+    - name: Cache Go modules and build
+      if: github.ref == 'refs/heads/main'
+      uses: actions/cache@v6
+      with:
+        path: |
+          ${{ steps.keys.outputs.gomodcache }}
+          ${{ steps.keys.outputs.gocache }}
+        key: ${{ steps.keys.outputs.go-key }}
+        restore-keys: |
+          ${{ steps.keys.outputs.go-mod-prefix }}
+          ${{ steps.keys.outputs.go-prefix }}
 
     - name: Cache golangci-lint
+      if: github.ref == 'refs/heads/main'
       uses: actions/cache@v6
       with:
         path: ~/.cache/golangci-lint
-        key: golangci-lint-${{ runner.os }}-${{ hashFiles('.golangci.yml', '.golangci.yaml') }}
+        key: ${{ steps.keys.outputs.lint-key }}
         restore-keys: |
-          golangci-lint-${{ runner.os }}-
+          ${{ steps.keys.outputs.lint-prefix }}
+
+    # Restore only everywhere else (PRs, tags)
+    - name: Restore Go modules and build
+      if: github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ${{ steps.keys.outputs.gomodcache }}
+          ${{ steps.keys.outputs.gocache }}
+        key: ${{ steps.keys.outputs.go-key }}
+        restore-keys: |
+          ${{ steps.keys.outputs.go-mod-prefix }}
+          ${{ steps.keys.outputs.go-prefix }}
+
+    - name: Restore golangci-lint
+      if: github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.cache/golangci-lint
+        key: ${{ steps.keys.outputs.lint-key }}
+        restore-keys: |
+          ${{ steps.keys.outputs.lint-prefix }}

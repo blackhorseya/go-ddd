@@ -2,7 +2,7 @@
 # Runs on push to main and pull requests
 # Jobs: lint, test, build
 name: CI
-run-name: "CI: ${{ github.event.pull_request.title || github.event.head_commit.message }} by @${{ github.actor }}"
+run-name: "CI: ${{ github.event.pull_request.title || github.event.head_commit.message || github.event_name }} by @${{ github.actor }}"
 
 on:
   push:
@@ -31,6 +31,11 @@ on:
       - "Dockerfile"
       - ".github/workflows/ci.yml"
       - ".github/actions/**"
+  # Keep main's cache warm: GitHub evicts caches unused for 7 days, and
+  # PRs can only restore what main has saved
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

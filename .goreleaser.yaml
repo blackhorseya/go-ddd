@@ -100,6 +100,11 @@ dockers_v2:
       BINARY: service
     images:
       - ghcr.io/blackhorseya/go-ddd-api
+    # Layer cache via GitHub Actions cache. Only when CD exposes the runtime
+    # token; empty flags are dropped, so local builds run without it.
+    flags:
+      - '{{ if isEnvSet "ACTIONS_RUNTIME_TOKEN" }}--cache-from=type=gha,scope=go-ddd-api{{ end }}'
+      - '{{ if isEnvSet "ACTIONS_RUNTIME_TOKEN" }}--cache-to=type=gha,scope=go-ddd-api,mode=max,ignore-error=true{{ end }}'
     tags:
       - "{{ .Version }}"
       - "{{ .Major }}.{{ .Minor }}"
@@ -123,6 +128,11 @@ dockers_v2:
       BINARY: migrate
     images:
       - ghcr.io/blackhorseya/go-ddd-migrate
+    # Layer cache via GitHub Actions cache. Only when CD exposes the runtime
+    # token; empty flags are dropped, so local builds run without it.
+    flags:
+      - '{{ if isEnvSet "ACTIONS_RUNTIME_TOKEN" }}--cache-from=type=gha,scope=go-ddd-migrate{{ end }}'
+      - '{{ if isEnvSet "ACTIONS_RUNTIME_TOKEN" }}--cache-to=type=gha,scope=go-ddd-migrate,mode=max,ignore-error=true{{ end }}'
     tags:
       - "{{ .Version }}"
       - "{{ .Major }}.{{ .Minor }}"
