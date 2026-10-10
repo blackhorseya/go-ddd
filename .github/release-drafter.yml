@@ -84,19 +84,21 @@ autolabeler:
   - label: "test"
     title:
       - '/^test(\(.+\))?:/'
+  # (deps) scope 只歸 dependencies，避免同一個 PR 同時出現在 Maintenance 和
+  # Dependencies（release-drafter 會把 PR 放進每個符合 label 的分類）
   - label: "chore"
     title:
-      - '/^(chore|style|revert)(\(.+\))?:/'
+      - '/^(chore|style|revert)(\((?!deps\)).+\))?:/'
   - label: "ci"
     title:
-      - '/^ci(\(.+\))?:/'
+      - '/^ci(\((?!deps\)).+\))?:/'
   - label: "build"
     title:
-      - '/^build(\(.+\))?:/'
+      - '/^build(\((?!deps\)).+\))?:/'
+  # 只看標題，不看 go.mod：feat/fix PR 新增套件時仍歸在原本的分類
   - label: "dependencies"
-    files:
-      - "go.mod"
-      - "go.sum"
+    title:
+      - '/^(chore|ci|build)\(deps\)!?:/'
 
 template: |
   ## What's Changed
