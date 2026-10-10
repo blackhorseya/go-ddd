@@ -5,7 +5,7 @@ vars:
   MODULE: github.com/blackhorseya/go-ddd
   BINARY: service
   BUILD_DIR: bin
-  IMAGE: ghcr.io/blackhorseya/go-ddd
+  IMAGE: ghcr.io/blackhorseya/go-ddd-api
   VERSION:
     sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
 

@@ -242,14 +242,17 @@ task db:migrate:up CONFIG=configs/staging.yaml
 檔案命名遵循 golang-migrate 慣例：`{6 位序號}_{描述}.{up|down}.sql`。
 
 發版時 `migrate` 有自己的 archive（`go-ddd-migrate_{version}_{os}_{arch}.tar.gz`），
-只跑 migration 的環境不必下載整個 service。同時它也被打包進 service 的 Docker image，
-可在 Kubernetes 以 initContainer 執行，確保 migration 與服務版本一致：
+只跑 migration 的環境不必下載整個 service。Docker image 也一樣按 binary 拆開：
+service 是 `ghcr.io/blackhorseya/go-ddd-api`，migrate 是 `ghcr.io/blackhorseya/go-ddd-migrate`，
+兩者共用同一份 `Dockerfile`（以 `BINARY` build arg 決定帶入哪支 binary，
+容器內一律放在 `/app/entrypoint`）。在 Kubernetes 以 initContainer 執行時，
+使用同版本 tag 即可確保 migration 與服務版本一致：
 
 ```yaml
 initContainers:
   - name: migrate
-    image: ghcr.io/blackhorseya/go-ddd:1.2.0
-    command: ["/app/migrate", "-config", "/etc/go-ddd/config.yaml", "up"]
+    image: ghcr.io/blackhorseya/go-ddd-migrate:1.2.0
+    args: ["-config", "/etc/go-ddd/config.yaml", "up"]
 ```
 
 ### 在 AWS Lambda 執行
