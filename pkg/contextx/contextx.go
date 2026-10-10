@@ -50,17 +50,17 @@ var (
 )
 
 // defaultLogger is the fallback logger using slog.
-var defaultLogger Logger = &slogAdapter{slog.Default()}
+var defaultLogger Logger = &slogAdapter{}
 
-// slogAdapter adapts slog.Logger to our Logger interface.
-type slogAdapter struct {
-	*slog.Logger
-}
+// slogAdapter adapts the current slog default logger to our Logger interface.
+// It resolves slog.Default() on every call instead of capturing it at init,
+// so a later slog.SetDefault (e.g. logx.SetAsDefault) takes effect.
+type slogAdapter struct{}
 
-func (s *slogAdapter) Debug(msg string, args ...any) { s.Logger.Debug(msg, args...) }
-func (s *slogAdapter) Info(msg string, args ...any)  { s.Logger.Info(msg, args...) }
-func (s *slogAdapter) Warn(msg string, args ...any)  { s.Logger.Warn(msg, args...) }
-func (s *slogAdapter) Error(msg string, args ...any) { s.Logger.Error(msg, args...) }
+func (s *slogAdapter) Debug(msg string, args ...any) { slog.Default().Debug(msg, args...) }
+func (s *slogAdapter) Info(msg string, args ...any)  { slog.Default().Info(msg, args...) }
+func (s *slogAdapter) Warn(msg string, args ...any)  { slog.Default().Warn(msg, args...) }
+func (s *slogAdapter) Error(msg string, args ...any) { slog.Default().Error(msg, args...) }
 
 // From creates a Contextx from a standard context.Context.
 func From(c context.Context) *Contextx {
@@ -139,9 +139,14 @@ func (ctx *Contextx) Error(msg string, args ...any) {
 // logWithCaller logs a message with the correct caller location.
 // It captures the caller 3 levels up: Callers() -> logWithCaller() -> Info/Debug/etc() -> business code
 func (ctx *Contextx) logWithCaller(level slog.Level, msg string, args ...any) {
-	// Merge context fields with provided args
+	// Merge well-known context values, accumulated fields, and provided args.
+	// Build a fresh slice so the fields slice stored in context is never mutated.
+	known := ctx.LogFields()
 	fields := fieldsFromContext(ctx.Context)
-	allArgs := append(fields, args...)
+	allArgs := make([]any, 0, len(known)+len(fields)+len(args))
+	allArgs = append(allArgs, known...)
+	allArgs = append(allArgs, fields...)
+	allArgs = append(allArgs, args...)
 
 	// Check for custom logger: in context or via SetDefaultLogger
 	// If a custom logger is set, use it (for testing and custom logger support)
@@ -167,6 +172,13 @@ func (ctx *Contextx) logWithCaller(level slog.Level, msg string, args ...any) {
 		return
 	}
 
+	// Calling the handler directly bypasses slog.Logger's level check,
+	// so it must be done here to honor the configured minimum level.
+	handler := slog.Default().Handler()
+	if !handler.Enabled(ctx.Context, level) {
+		return
+	}
+
 	// For slog default logger, capture caller PC and log directly
 	// Skip: Callers, logWithCaller, Info/Debug/etc
 	var pcs [1]uintptr
@@ -175,7 +187,7 @@ func (ctx *Contextx) logWithCaller(level slog.Level, msg string, args ...any) {
 	// Create record with correct caller info and call handler
 	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
 	r.Add(allArgs...)
-	_ = slog.Default().Handler().Handle(ctx.Context, r)
+	_ = handler.Handle(ctx.Context, r)
 }
 
 // WithLogger returns a new Contextx with the given logger attached.

@@ -96,7 +96,6 @@ func (s *loggingClientStream) RecvMsg(m any) error {
 func logRPC(ctx context.Context, kind, method string, latency time.Duration, err error) {
 	st, _ := status.FromError(err)
 	logger := contextx.From(ctx).WithFields(
-		"trace_id", contextx.GetTraceID(ctx),
 		"grpc.kind", kind,
 		"grpc.method", method,
 		"grpc.code", st.Code().String(),
