@@ -91,13 +91,15 @@ changelog:
   disable: true
 
 dockers_v2:
+  # One image per binary, all built from the same Dockerfile (BINARY build arg).
   - id: service
     ids:
       - service
-      - migrate
     dockerfile: Dockerfile
+    build_args:
+      BINARY: service
     images:
-      - ghcr.io/blackhorseya/go-ddd
+      - ghcr.io/blackhorseya/go-ddd-api
     tags:
       - "{{ .Version }}"
       - "{{ .Major }}.{{ .Minor }}"
@@ -106,12 +108,35 @@ dockers_v2:
       - linux/amd64
       - linux/arm64
     labels:
-      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.title: "{{ .ProjectName }}-api"
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.created: "{{ .Date }}"
       org.opencontainers.image.source: "https://github.com/blackhorseya/go-ddd"
-      org.opencontainers.image.description: "Go DDD template project"
+      org.opencontainers.image.description: "Go DDD template project — service (HTTP/gRPC API)"
+
+  - id: migrate
+    ids:
+      - migrate
+    dockerfile: Dockerfile
+    build_args:
+      BINARY: migrate
+    images:
+      - ghcr.io/blackhorseya/go-ddd-migrate
+    tags:
+      - "{{ .Version }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}-migrate"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.source: "https://github.com/blackhorseya/go-ddd"
+      org.opencontainers.image.description: "Go DDD template project — migrate (one-shot schema applier)"
 
 release:
   github:
