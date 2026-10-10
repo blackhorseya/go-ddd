@@ -1,7 +1,11 @@
 package contextx
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"log/slog"
+	"strings"
 	"testing"
 )
 
@@ -596,5 +600,105 @@ func TestFullContextSetup(t *testing.T) {
 	fields := ctx.LogFields()
 	if len(fields) != 14 { // 7 key-value pairs
 		t.Errorf("expected 14 fields, got %d", len(fields))
+	}
+}
+
+// ============================================================================
+// slog default logger integration
+// ============================================================================
+
+// useSlogDefault installs a JSON slog default logger writing to the returned
+// buffer, and restores the previous default when the test ends.
+func useSlogDefault(t *testing.T, level slog.Level) *bytes.Buffer {
+	t.Helper()
+
+	original := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(original) })
+
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: level})))
+
+	return &buf
+}
+
+func decodeLines(t *testing.T, buf *bytes.Buffer) []map[string]any {
+	t.Helper()
+
+	var records []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(buf.String()), "\n") {
+		if line == "" {
+			continue
+		}
+
+		var m map[string]any
+		if err := json.Unmarshal([]byte(line), &m); err != nil {
+			t.Fatalf("invalid json log line %q: %v", line, err)
+		}
+		records = append(records, m)
+	}
+
+	return records
+}
+
+func TestLogWithCaller_RespectsHandlerLevel(t *testing.T) {
+	buf := useSlogDefault(t, slog.LevelInfo)
+
+	ctx := Background()
+	ctx.Debug("filtered")
+	ctx.Info("kept")
+
+	records := decodeLines(t, buf)
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d: %s", len(records), buf.String())
+	}
+
+	if records[0]["msg"] != "kept" {
+		t.Errorf("expected msg 'kept', got %v", records[0]["msg"])
+	}
+}
+
+func TestLogWithCaller_IncludesContextValues(t *testing.T) {
+	buf := useSlogDefault(t, slog.LevelInfo)
+
+	ctx := Background().
+		WithRequestID("req-1").
+		WithOperation("CreateOrder").
+		WithFields("k", "v")
+	ctx.Info("hello", "extra", 1)
+
+	records := decodeLines(t, buf)
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+
+	want := map[string]any{
+		"request_id": "req-1",
+		"operation":  "CreateOrder",
+		"k":          "v",
+		"extra":      float64(1),
+	}
+	for key, val := range want {
+		if records[0][key] != val {
+			t.Errorf("expected %s=%v, got %v", key, val, records[0][key])
+		}
+	}
+}
+
+func TestFromContext_FollowsSlogSetDefault(t *testing.T) {
+	buf := useSlogDefault(t, slog.LevelInfo)
+
+	FromContext(context.Background()).Info("via default", "k", "v")
+
+	records := decodeLines(t, buf)
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+
+	if records[0]["msg"] != "via default" {
+		t.Errorf("expected msg 'via default', got %v", records[0]["msg"])
+	}
+
+	if records[0]["k"] != "v" {
+		t.Errorf("expected k=v, got %v", records[0]["k"])
 	}
 }
