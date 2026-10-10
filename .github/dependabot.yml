@@ -1,0 +1,60 @@
+# Dependabot configuration
+#
+# OpenTelemetry modules must be bumped as one set: the log bridge, log SDK
+# and log exporter are built against a specific otel/log API, so bumping
+# just one of them breaks the build. Groups apply to both version and
+# security updates, so neither path opens a lone otel bump again.
+version: 2
+
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      opentelemetry:
+        applies-to: version-updates
+        patterns:
+          - "go.opentelemetry.io/*"
+      opentelemetry-security:
+        applies-to: security-updates
+        patterns:
+          - "go.opentelemetry.io/*"
+      grpc:
+        applies-to: version-updates
+        patterns:
+          - "google.golang.org/grpc"
+          - "google.golang.org/genproto/*"
+          - "google.golang.org/protobuf"
+      grpc-security:
+        applies-to: security-updates
+        patterns:
+          - "google.golang.org/grpc"
+          - "google.golang.org/genproto/*"
+          - "google.golang.org/protobuf"
+
+  # Composite actions under .github/actions aren't scanned from "/" alone
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "chore(deps)"
