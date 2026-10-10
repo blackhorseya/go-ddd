@@ -24,7 +24,7 @@ runs:
   steps:
     - name: Setup Go
       id: setup
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version-file: ${{ inputs.go-version-file }}
         cache: false
